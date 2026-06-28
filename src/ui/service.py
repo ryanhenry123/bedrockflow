@@ -32,7 +32,7 @@ MAX_WORKERS: dict[str, int | None] = {
 PHASE_LABELS: dict[StepPhase, str] = {
     "start": "started",
     "complete": "completed",
-    "eval_pass": "eval passed",
+    "eval_pass": "eval passed",  # nosec B105
     "eval_fail": "eval failed",
     "failure_handled": "failure handled",
     "error": "failed",
@@ -41,7 +41,7 @@ PHASE_LABELS: dict[StepPhase, str] = {
 PHASE_STATUS: dict[StepPhase, StepStatus] = {
     "start": "running",
     "complete": "completed",
-    "eval_pass": "running",
+    "eval_pass": "running",  # nosec B105
     "eval_fail": "eval_failed",
     "failure_handled": "handled",
     "error": "failed",
