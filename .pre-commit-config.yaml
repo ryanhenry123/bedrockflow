@@ -1,0 +1,33 @@
+default_language_version:
+  python: python3.12
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+        exclude: ^uv\.lock$
+      - id: check-json
+      - id: check-toml
+      - id: debug-statements
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+  - repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+      - id: black
+        language_version: python3.12
+        files: ^(src|tests|examples)/
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c "uv sync --extra tests -q && uv run pytest -q"
+        language: system
+        pass_filenames: false
+        always_run: true
