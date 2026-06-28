@@ -121,3 +121,18 @@ def example_tasks():
     REGISTRY.clear()
     importlib.reload(sys.modules["examples.tasks"])
     yield sys.modules["examples.tasks"]
+
+
+@pytest.fixture
+def parallel_example_tasks():
+    """Reload parallel example task registrations."""
+    import importlib
+    import sys
+
+    module_name = "examples.parallel_tasks"
+    if module_name not in sys.modules:
+        import examples.parallel_tasks  # noqa: F401
+
+    REGISTRY.clear()
+    importlib.reload(sys.modules[module_name])
+    yield sys.modules[module_name]

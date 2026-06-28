@@ -1,6 +1,7 @@
 from collections import Counter
 from collections.abc import Callable
-from typing import Self
+from threading import Lock
+from typing import Any, Self
 from pathlib import Path
 from pydantic import BaseModel, Field, model_validator
 from yaml import safe_load
@@ -16,6 +17,29 @@ class Context(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
     data: dict[str, object] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        object.__setattr__(self, "_lock", Lock())
+
+    @property
+    def lock(self) -> Lock:
+        return self._lock
+
+    def get_shared(self, key: str, default: object | None = None) -> object | None:
+        with self._lock:
+            return self.data.get(key, default)
+
+    def set_shared(self, key: str, value: object) -> None:
+        with self._lock:
+            self.data[key] = value
+
+    def merge_shared(self, key: str, value: object) -> None:
+        with self._lock:
+            current = self.data.get(key)
+            if isinstance(current, dict) and isinstance(value, dict):
+                current.update(value)
+            else:
+                self.data[key] = value
 
 
 # Serializable Steps (YAML / JSON supported)

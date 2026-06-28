@@ -204,3 +204,66 @@ def test_step_from_spec_rejects_role_mismatch():
         registry.add_spec(
             spec("step", "shared", eval_name="shared"),
         )
+
+
+def test_parallel_batch_runs_concurrently():
+    import threading
+
+    barrier = threading.Barrier(2)
+    started: list[str] = []
+
+    def make(name: str, *, sync: bool = False):
+        def _run(_ctx: Context) -> str:
+            started.append(name)
+            if sync:
+                barrier.wait(timeout=1)
+            return name
+
+        return _run
+
+    g = build_dag(
+        [
+            make_step("a", make("a", sync=True)),
+            make_step("b", make("b", sync=True)),
+            make_step("c", make("c"), depends_on=["a", "b"]),
+        ]
+    )
+    ctx = run_workflow(g, Context(), max_workers=2)
+    assert set(started[:2]) == {"a", "b"}
+    assert started[2] == "c"
+    assert ctx.data["c"] == "c"
+
+
+def test_shared_state_merge_is_thread_safe():
+    def write(symbol: str):
+        def _run(ctx: Context) -> str:
+            ctx.merge_shared("quotes", {symbol: symbol})
+            return symbol
+
+        return _run
+
+    g = build_dag(
+        [
+            make_step("a", write("AAPL")),
+            make_step("b", write("MSFT")),
+            make_step(
+                "c",
+                lambda ctx: dict(ctx.get_shared("quotes", {})),
+                depends_on=["a", "b"],
+            ),
+        ]
+    )
+    ctx = run_workflow(g, Context(data={"quotes": {}}), max_workers=2)
+    assert ctx.data["quotes"] == {"AAPL": "AAPL", "MSFT": "MSFT"}
+
+
+def test_max_workers_one_runs_serially():
+    tracker = CallTracker()
+    g = build_dag(
+        [
+            make_step("a", tracker.caller("a")),
+            make_step("b", tracker.caller("b")),
+        ]
+    )
+    run_workflow(g, Context(), max_workers=1)
+    assert tracker.events[:2] == [("caller", "a"), ("caller", "b")]

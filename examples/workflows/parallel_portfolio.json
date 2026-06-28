@@ -1,0 +1,30 @@
+{
+  "name": "parallel_portfolio",
+  "steps": [
+    {
+      "step_name": "load_watchlist",
+      "caller": "load_watchlist",
+      "depends_on": []
+    },
+    {
+      "step_name": "fetch_aapl",
+      "caller": "fetch_aapl",
+      "depends_on": ["load_watchlist"]
+    },
+    {
+      "step_name": "fetch_msft",
+      "caller": "fetch_msft",
+      "depends_on": ["load_watchlist"]
+    },
+    {
+      "step_name": "aggregate_portfolio",
+      "caller": "aggregate_portfolio",
+      "depends_on": ["fetch_aapl", "fetch_msft"]
+    },
+    {
+      "step_name": "format_portfolio_report",
+      "caller": "format_portfolio_report",
+      "depends_on": ["aggregate_portfolio"]
+    }
+  ]
+}
