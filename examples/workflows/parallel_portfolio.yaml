@@ -1,4 +1,9 @@
 name: parallel_portfolio
+max_workers: 2
+default_context:
+  symbols:
+    - AAPL
+    - MSFT
 steps:
   - step_name: load_watchlist
     caller: load_watchlist

@@ -3,31 +3,14 @@ from __future__ import annotations
 import importlib
 import json
 import threading
-from pathlib import Path
 from typing import Literal
 
 import networkx as nx
 from src.dagbuilder import build_dag
 from src.executor import StepPhase, run_workflow
 from src.registry import Context, StepRegistry, WorkflowSpec
+from src.ui.discovery import WorkflowDefinition, get_workflow, list_workflow_names
 from src.ui.store import StepStatus, StepView, WorkflowStore
-
-WORKFLOWS_DIR = Path(__file__).resolve().parents[2] / "examples" / "workflows"
-
-TASK_MODULES: dict[str, str] = {
-    "daily_report": "examples.tasks",
-    "parallel_portfolio": "examples.parallel_tasks",
-}
-
-DEFAULT_CONTEXT: dict[str, dict[str, object]] = {
-    "daily_report": {"symbol": "MSFT"},
-    "parallel_portfolio": {"symbols": ["AAPL", "MSFT"]},
-}
-
-MAX_WORKERS: dict[str, int | None] = {
-    "daily_report": None,
-    "parallel_portfolio": 2,
-}
 
 PHASE_LABELS: dict[StepPhase, str] = {
     "start": "started",
@@ -48,22 +31,6 @@ PHASE_STATUS: dict[StepPhase, StepStatus] = {
 }
 
 CASCADE_PHASES: frozenset[StepPhase] = frozenset({"eval_fail", "failure_handled"})
-
-
-def list_workflow_names() -> list[str]:
-    names = {path.stem for path in WORKFLOWS_DIR.glob("*.yaml")}
-    return sorted(names)
-
-
-def load_workflow_spec(name: str) -> WorkflowSpec:
-    yaml_path = WORKFLOWS_DIR / f"{name}.yaml"
-    json_path = WORKFLOWS_DIR / f"{name}.json"
-    if yaml_path.exists():
-        return WorkflowSpec.load(yaml_path)
-    if json_path.exists():
-        payload = json.loads(json_path.read_text())
-        return WorkflowSpec.model_validate(payload)
-    raise FileNotFoundError(f"Workflow not found: {name}")
 
 
 def _step_views(spec: WorkflowSpec) -> list[StepView]:
@@ -90,11 +57,10 @@ def _format_output(value: object) -> str:
         return repr(value)
 
 
-def _report_from_context(name: str, ctx: Context) -> str | None:
-    if name == "parallel_portfolio":
-        value = ctx.data.get("format_portfolio_report")
-    else:
-        value = ctx.data.get("format_report")
+def _report_from_context(definition: WorkflowDefinition, ctx: Context) -> str | None:
+    if definition.report_key is None:
+        return None
+    value = ctx.data.get(definition.report_key)
     return str(value) if value is not None else None
 
 
@@ -103,31 +69,28 @@ class WorkflowService:
         self.store = store
 
     def start_run(self, name: str) -> str:
-        spec = load_workflow_spec(name)
-        task_module = TASK_MODULES.get(name)
-        if task_module is None:
-            raise ValueError(f"No task module configured for workflow: {name}")
-
-        run = self.store.create_run(name, _step_views(spec))
+        definition = get_workflow(name)
+        run = self.store.create_run(name, _step_views(definition.spec))
         thread = threading.Thread(
             target=self._execute,
-            args=(run.workflow_id, spec, task_module),
+            args=(run.workflow_id, definition),
             daemon=True,
         )
         thread.start()
         return run.workflow_id
 
-    def _execute(self, workflow_id: str, spec: WorkflowSpec, task_module: str) -> None:
+    def _execute(self, workflow_id: str, definition: WorkflowDefinition) -> None:
+        spec = definition.spec
         step_meta = {step.step_name: step for step in spec.steps}
 
         try:
             self.store.set_status(workflow_id, "running")
-            importlib.import_module(task_module)
+            importlib.import_module(definition.task_module)
 
             registry = StepRegistry()
             registry.load_workflow(spec)
             graph = build_dag(registry.all())
-            ctx = Context(data=dict(DEFAULT_CONTEXT.get(spec.name, {})))
+            ctx = Context(data=dict(definition.default_context))
 
             def on_step(
                 step_name: str,
@@ -182,14 +145,14 @@ class WorkflowService:
             ctx = run_workflow(
                 graph,
                 ctx,
-                max_workers=MAX_WORKERS.get(spec.name),
+                max_workers=definition.max_workers,
                 on_step=on_step,
                 on_batch=on_batch,
             )
             self.store.finish(
                 workflow_id,
                 status="completed",
-                report=_report_from_context(spec.name, ctx),
+                report=_report_from_context(definition, ctx),
             )
         except Exception as exc:
             self.store.finish(workflow_id, status="failed", error=str(exc))

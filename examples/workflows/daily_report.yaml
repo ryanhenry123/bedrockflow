@@ -1,4 +1,6 @@
 name: daily_report
+default_context:
+  symbol: MSFT
 steps:
   - step_name: load_symbol
     caller: load_symbol

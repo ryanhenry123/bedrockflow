@@ -13,6 +13,7 @@ def test_ui_lists_workflows():
     names = res.json()["workflows"]
     assert "daily_report" in names
     assert "parallel_portfolio" in names
+    assert "aws_risk_summary" in names
 
 
 def test_ui_index_renders_dashboard():

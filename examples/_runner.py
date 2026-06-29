@@ -20,6 +20,7 @@ def execute(
     *,
     max_workers: int | None = None,
     task_module: str = "examples.tasks",
+    report_key: str | None = "format_report",
 ) -> Context:
     import importlib
 
@@ -33,6 +34,6 @@ def execute(
     if spec.name == "parallel_portfolio":
         print(f"report={result.data.get('format_portfolio_report')!r}")
         print(f"shared_quotes={result.data.get('quotes')!r}")
-    else:
-        print(f"report={result.data.get('format_report')!r}")
+    elif report_key is not None:
+        print(f"report={result.data.get(report_key)!r}")
     return result

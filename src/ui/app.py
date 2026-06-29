@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from src.ui.service import WorkflowService, list_workflow_names
+from src.ui.discovery import list_workflow_names
+from src.ui.service import WorkflowService
 from src.ui.store import WorkflowStore
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"

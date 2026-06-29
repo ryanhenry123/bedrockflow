@@ -1,0 +1,21 @@
+name: aws_risk_summary
+default_context:
+  symbol: AAPL
+  thesis: Long gamma into earnings
+  model_id: amazon.nova-lite-v1:0
+steps:
+  - step_name: load_thesis
+    caller: load_thesis
+    depends_on: []
+
+  - step_name: summarize_risk
+    caller: summarize_risk
+    eval: validate_summary
+    on_failure: handle_bedrock_failure
+    depends_on:
+      - load_thesis
+
+  - step_name: format_memo
+    caller: format_memo
+    depends_on:
+      - summarize_risk
