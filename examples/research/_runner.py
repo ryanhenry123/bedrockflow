@@ -32,6 +32,9 @@ def execute(
 
 
 def _print_outcome(ctx: Context) -> None:
+    if pdf := ctx.data.get("render_research_pdf"):
+        if isinstance(pdf, dict):
+            print(f"pdf={pdf.get('path')!r} url={pdf.get('download_url')!r}")
     if report := ctx.data.get("format_research_report"):
         print(f"report={report!r}")
         return

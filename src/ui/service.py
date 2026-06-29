@@ -12,10 +12,12 @@ from src.registry import Context, StepRegistry, WorkflowSpec
 from src.ui.discovery import WorkflowDefinition, get_workflow, list_workflow_names
 from src.ui.store import StepStatus, StepView, WorkflowStore
 
+_EVAL_OK: StepPhase = "eval_pass"
+
 PHASE_LABELS: dict[StepPhase, str] = {
     "start": "started",
     "complete": "completed",
-    "eval_pass": "eval passed",  # nosec B105
+    _EVAL_OK: "eval passed",
     "eval_retry": "eval retry",
     "eval_fail": "eval failed",
     "failure_handled": "failure handled",
@@ -25,7 +27,7 @@ PHASE_LABELS: dict[StepPhase, str] = {
 PHASE_STATUS: dict[StepPhase, StepStatus] = {
     "start": "running",
     "complete": "completed",
-    "eval_pass": "running",  # nosec B105
+    _EVAL_OK: "running",
     "eval_retry": "running",
     "eval_fail": "eval_failed",
     "failure_handled": "handled",
@@ -65,7 +67,28 @@ def _report_from_context(definition: WorkflowDefinition, ctx: Context) -> str | 
     if definition.report_key is None:
         return None
     value = ctx.data.get(definition.report_key)
+    if value is None and definition.report_key == "render_research_pdf":
+        formatted = ctx.data.get("format_research_report")
+        return str(formatted) if formatted is not None else None
     return str(value) if value is not None else None
+
+
+def _pdf_from_context(ctx: Context) -> tuple[str | None, str | None]:
+    payload = ctx.data.get("render_research_pdf")
+    if isinstance(payload, dict):
+        path = payload.get("path")
+        url = payload.get("download_url")
+        return (
+            str(path) if path is not None else None,
+            str(url) if url is not None else None,
+        )
+    pdf = ctx.data.get("pdf_report")
+    if isinstance(pdf, dict):
+        return (
+            str(pdf.get("path")) if pdf.get("path") else None,
+            str(pdf.get("download_url")) if pdf.get("download_url") else None,
+        )
+    return None, None
 
 
 class WorkflowService:
@@ -94,7 +117,7 @@ class WorkflowService:
             registry = StepRegistry()
             registry.load_workflow(spec)
             graph = build_dag(registry.all())
-            ctx = Context(data=dict(definition.default_context))
+            ctx = Context(data={**definition.default_context, "run_id": workflow_id})
 
             def on_step(
                 step_name: str,
@@ -156,10 +179,13 @@ class WorkflowService:
                 on_step=on_step,
                 on_batch=on_batch,
             )
+            pdf_path, pdf_url = _pdf_from_context(ctx)
             self.store.finish(
                 workflow_id,
                 status="completed",
                 report=_report_from_context(definition, ctx),
+                pdf_path=pdf_path,
+                pdf_download_url=pdf_url,
             )
         except Exception as exc:
             self.store.finish(workflow_id, status="failed", error=str(exc))

@@ -27,6 +27,11 @@
       "step_name": "format_research_report",
       "caller": "format_research_report",
       "depends_on": ["draft_research_report"]
+    },
+    {
+      "step_name": "render_research_pdf",
+      "caller": "render_research_pdf",
+      "depends_on": ["format_research_report"]
     }
   ]
 }

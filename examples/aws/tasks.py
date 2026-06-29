@@ -152,7 +152,7 @@ def eval_summary_nonempty(ctx: Context, result: object) -> EvalVerdict:
         return EvalVerdict.RETRY
     if result.get("stop_reason") == "content_filtered":
         return EvalVerdict.FAIL
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("eval_summary_length", Role.EVAL)
@@ -168,7 +168,7 @@ def eval_summary_length(ctx: Context, result: object) -> EvalVerdict:
             f"expand to at least {min_chars} characters (got {len(text.strip())})",
         )
         return EvalVerdict.RETRY
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("eval_summary_mentions_symbol", Role.EVAL)
@@ -182,7 +182,7 @@ def eval_summary_mentions_symbol(ctx: Context, result: object) -> EvalVerdict:
             ctx, STEP, f"explicitly reference symbol {symbol}"
         )
         return EvalVerdict.RETRY
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("handle_bedrock_failure", Role.FAILURE)

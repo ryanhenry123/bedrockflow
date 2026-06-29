@@ -161,7 +161,7 @@ def eval_report_structure(ctx: Context, result: object) -> EvalVerdict:
             "add markdown section headings (## Overview, ## Recent Evidence, ## Implications, ## References)",
         )
         return EvalVerdict.RETRY
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("eval_report_recency", Role.EVAL)
@@ -176,7 +176,7 @@ def eval_report_recency(ctx: Context, result: object) -> EvalVerdict:
             "anchor the note to 2024-2026 evidence and data",
         )
         return EvalVerdict.RETRY
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("eval_report_references", Role.EVAL)
@@ -199,7 +199,7 @@ def eval_report_references(ctx: Context, result: object) -> EvalVerdict:
             "list at least two bullet citations under References",
         )
         return EvalVerdict.RETRY
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("eval_report_depth", Role.EVAL)
@@ -216,7 +216,7 @@ def eval_report_depth(ctx: Context, result: object) -> EvalVerdict:
             f"expand analysis to at least {min_words} words (currently {words})",
         )
         return EvalVerdict.RETRY
-    return EvalVerdict.PASS
+    return EvalVerdict.OK
 
 
 @register("handle_research_failure", Role.FAILURE)
@@ -235,3 +235,24 @@ def format_research_report(ctx: Context) -> str:
     header = f"# Research Report: {topic}\n\n"
     footer = f"\n\n---\n_generated in {turns} model turn(s), {tokens} output tokens_"
     return header + str(draft["text"]).strip() + footer
+
+
+@register("render_research_pdf", Role.CALLER)
+def render_research_pdf(ctx: Context) -> dict[str, str]:
+    from src.reports.pdf_builder import build_research_pdf
+
+    brief = ctx.data["load_research_brief"]
+    narrative = str(ctx.data["format_research_report"])
+    run_id = str(ctx.data.get("run_id", "local"))
+    path = build_research_pdf(
+        topic=str(brief["topic"]),
+        narrative=narrative,
+        run_id=run_id,
+    )
+    payload = {
+        "path": str(path),
+        "filename": path.name,
+        "download_url": f"/reports/{path.stem}.pdf",
+    }
+    ctx.data["pdf_report"] = payload
+    return payload

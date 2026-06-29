@@ -61,7 +61,7 @@ def _execute_step(
 
             verdict, retry_reasons = run_eval_panel(step.eval_funcs, ctx, result, name)
 
-            if verdict is EvalVerdict.PASS:
+            if verdict is EvalVerdict.OK:
                 for eval_func in step.eval_funcs:
                     _notify(on_step, name, "eval_pass", eval_func.__name__)
                 return _StepOutcome(

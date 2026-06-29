@@ -14,6 +14,7 @@ EXPECTED_ORDER = [
     "load_research_brief",
     "draft_research_report",
     "format_research_report",
+    "render_research_pdf",
 ]
 MOCK_CTX = Context(data={"mock_bedrock": True})
 
@@ -53,6 +54,14 @@ def assert_happy_path(ctx: Context) -> None:
     report = ctx.data["format_research_report"]
     assert report.startswith("# Research Report:")
     assert "## References" in report or "References" in report
+    pdf = ctx.data.get("render_research_pdf")
+    assert isinstance(pdf, dict)
+    assert pdf.get("path")
+    assert str(pdf["path"]).endswith(".pdf")
+    assert pdf.get("download_url", "").endswith(".pdf")
+    from pathlib import Path
+
+    assert Path(pdf["path"]).stat().st_size > 5000
 
 
 @pytest.mark.parametrize(
@@ -100,4 +109,5 @@ def test_research_eval_exhaustion_skips_downstream(research_example_tasks):
     )
     assert "draft_research_report" in ctx.data
     assert "format_research_report" not in ctx.data
+    assert "render_research_pdf" not in ctx.data
     assert "draft_research_report__eval_failure_reason" in ctx.data

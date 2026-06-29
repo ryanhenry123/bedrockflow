@@ -38,6 +38,11 @@ RESEARCH_REPORT = WorkflowSpec(
             caller="format_research_report",
             depends_on=["draft_research_report"],
         ),
+        StepSpec(
+            step_name="render_research_pdf",
+            caller="render_research_pdf",
+            depends_on=["format_research_report"],
+        ),
     ],
 )
 

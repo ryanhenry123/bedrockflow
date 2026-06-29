@@ -35,6 +35,7 @@ def test_infers_report_keys():
     assert get_workflow("daily_report").report_key == "format_report"
     assert get_workflow("parallel_portfolio").report_key == "format_portfolio_report"
     assert get_workflow("aws_risk_summary").report_key == "format_memo"
+    assert get_workflow("research_report").report_key == "format_research_report"
 
 
 def test_parallel_portfolio_infers_max_workers():

@@ -3,13 +3,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from src.reports.catalog import CATALOG
+from src.reports.pdf_builder import build_research_pdf
+from src.reports.paths import report_path
 from src.ui.discovery import list_workflow_names
+from src.ui.reports import catalog_entries, pdf_file_response, resolve_pdf_file
 from src.ui.service import WorkflowService
 from src.ui.store import WorkflowStore
 
@@ -20,7 +26,34 @@ store = WorkflowStore()
 service = WorkflowService(store)
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
-app = FastAPI(title="Orchflow UI", version="0.2.0")
+
+def _ensure_catalog_pdfs() -> None:
+    for dataset in CATALOG:
+        slug = f"catalog-{dataset.slug}"
+        target = report_path(slug)
+        if target.exists():
+            continue
+        narrative = (
+            f"# Research Report: {dataset.title}\n\n"
+            f"## Overview\nAutomated catalog report for {dataset.subtitle}.\n"
+            f"## Recent Evidence\nSee statistical exhibits and tables in this document.\n"
+            f"## Implications\nRisk teams should monitor regime shifts and crowding.\n"
+            f"## References\n- Orchflow Research Catalog ({dataset.slug})\n"
+        )
+        build_research_pdf(
+            topic=dataset.title,
+            narrative=narrative,
+            output_path=target,
+        )
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _ensure_catalog_pdfs()
+    yield
+
+
+app = FastAPI(title="Orchflow UI", version="0.2.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -32,6 +65,11 @@ class RunsResponse(BaseModel):
 
 class WorkflowsResponse(BaseModel):
     workflows: list[str]
+
+
+class ReportsResponse(BaseModel):
+    catalog: list[dict[str, str]]
+    runs: list[dict[str, str]]
 
 
 def _runs_newest_first() -> list:
@@ -130,6 +168,7 @@ def _serialize_run(run) -> dict[str, object]:
         ],
         "report": run.report,
         "error": run.error,
+        "pdf_download_url": run.pdf_download_url,
     }
 
 
@@ -198,6 +237,7 @@ def index(request: Request, run: str | None = None) -> HTMLResponse:
             "run_history": _run_history(grouped),
             "selected_run_id": selected_run_id,
             "workflows": list_workflow_names(),
+            "catalog_reports": catalog_entries(),
             "auto_refresh": store.has_active_run(),
         },
     )
@@ -237,3 +277,26 @@ def start_workflow_api(name: str) -> dict[str, str]:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"workflow_id": workflow_id}
+
+
+@app.get("/reports/{slug}.pdf")
+def download_report(slug: str) -> FileResponse:
+    path = resolve_pdf_file(slug)
+    return pdf_file_response(path)
+
+
+@app.get("/api/reports", response_model=ReportsResponse)
+def list_reports() -> ReportsResponse:
+    run_entries: list[dict[str, str]] = []
+    for run in _runs_newest_first():
+        if not run.pdf_download_url:
+            continue
+        run_entries.append(
+            {
+                "workflow_id": run.workflow_id,
+                "name": run.name,
+                "download_url": run.pdf_download_url,
+                "status": run.status,
+            }
+        )
+    return ReportsResponse(catalog=catalog_entries(), runs=run_entries)

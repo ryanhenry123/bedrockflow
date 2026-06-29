@@ -70,6 +70,8 @@ class WorkflowView:
     waves: list[WaveView] = field(default_factory=list)
     error: str | None = None
     report: str | None = None
+    pdf_path: str | None = None
+    pdf_download_url: str | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
 
@@ -158,12 +160,16 @@ class WorkflowStore:
         status: RunStatus,
         report: str | None = None,
         error: str | None = None,
+        pdf_path: str | None = None,
+        pdf_download_url: str | None = None,
     ) -> None:
         with self._lock:
             run = self._require(workflow_id)
             run.status = status
             run.report = report
             run.error = error
+            run.pdf_path = pdf_path
+            run.pdf_download_url = pdf_download_url
             run.finished_at = datetime.now(UTC)
 
     def _find_step(self, run: WorkflowView, step_name: str) -> StepView:

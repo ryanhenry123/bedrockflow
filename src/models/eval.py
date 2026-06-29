@@ -6,7 +6,7 @@ from typing import Any
 
 
 class EvalVerdict(StrEnum):
-    PASS = "pass"
+    OK = "ok"
     RETRY = "retry"
     FAIL = "fail"
 
@@ -18,7 +18,7 @@ def normalize_eval_result(result: EvalResult) -> EvalVerdict:
     if result is None:
         return EvalVerdict.FAIL
     if isinstance(result, bool):
-        return EvalVerdict.PASS if result else EvalVerdict.FAIL
+        return EvalVerdict.OK if result else EvalVerdict.FAIL
     return result
 
 
@@ -28,7 +28,7 @@ def run_eval_panel(
     result: object,
     step_name: str,
 ) -> tuple[EvalVerdict, list[str]]:
-    """Run evals in order. FAIL wins; else RETRY if any; else PASS."""
+    """Run evals in order. FAIL wins; else RETRY if any; else OK."""
     retry_reasons: list[str] = []
     saw_retry = False
 
@@ -49,4 +49,4 @@ def run_eval_panel(
         ctx.set_shared(f"{step_name}__feedback", reasons)
         return EvalVerdict.RETRY, reasons
 
-    return EvalVerdict.PASS, []
+    return EvalVerdict.OK, []

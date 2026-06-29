@@ -296,7 +296,7 @@ def test_model_turn_retry_then_passes():
         if str(result).endswith("-1"):
             ctx.set_shared("a__retry_reason", "needs revision")
             return EvalVerdict.RETRY
-        return EvalVerdict.PASS
+        return EvalVerdict.OK
 
     g = build_dag(
         [

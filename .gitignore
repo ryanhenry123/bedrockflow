@@ -11,3 +11,4 @@ build/
 node_modules/
 *.env*
 modelprovider/modelproviders.py
+var/reports/

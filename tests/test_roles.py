@@ -78,7 +78,7 @@ def test_eval_rejects_non_bool_return():
 
 def test_eval_accepts_eval_verdict_return():
     def ok(_ctx: Context, _result: object) -> EvalVerdict:
-        return EvalVerdict.PASS
+        return EvalVerdict.OK
 
     validate_signature(ok, Role.EVAL)
 
