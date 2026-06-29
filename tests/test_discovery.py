@@ -17,7 +17,12 @@ def fresh_catalog():
 
 def test_discovers_all_example_workflows():
     names = sorted(discover_workflows())
-    assert names == ["aws_risk_summary", "daily_report", "parallel_portfolio"]
+    assert names == [
+        "aws_risk_summary",
+        "daily_report",
+        "parallel_portfolio",
+        "research_report",
+    ]
 
 
 def test_resolves_task_modules():

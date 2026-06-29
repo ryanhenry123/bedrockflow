@@ -4,6 +4,7 @@ from functools import wraps
 
 import pytest
 
+from src.models.eval import EvalVerdict
 from src.models.roles import Role, validate_signature
 from src.registry import Context
 
@@ -75,9 +76,9 @@ def test_eval_rejects_non_bool_return():
         validate_signature(bad, Role.EVAL)
 
 
-def test_eval_accepts_optional_bool_return():
-    def ok(ctx: Context, result: object) -> bool | None:
-        return None
+def test_eval_accepts_eval_verdict_return():
+    def ok(_ctx: Context, _result: object) -> EvalVerdict:
+        return EvalVerdict.PASS
 
     validate_signature(ok, Role.EVAL)
 

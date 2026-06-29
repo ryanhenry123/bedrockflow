@@ -16,6 +16,7 @@ PHASE_LABELS: dict[StepPhase, str] = {
     "start": "started",
     "complete": "completed",
     "eval_pass": "eval passed",  # nosec B105
+    "eval_retry": "eval retry",
     "eval_fail": "eval failed",
     "failure_handled": "failure handled",
     "error": "failed",
@@ -25,6 +26,7 @@ PHASE_STATUS: dict[StepPhase, StepStatus] = {
     "start": "running",
     "complete": "completed",
     "eval_pass": "running",  # nosec B105
+    "eval_retry": "running",
     "eval_fail": "eval_failed",
     "failure_handled": "handled",
     "error": "failed",
@@ -38,7 +40,9 @@ def _step_views(spec: WorkflowSpec) -> list[StepView]:
         StepView(
             name=step.step_name,
             caller=step.caller,
-            eval=step.eval,
+            eval=step.eval or (step.evals[0] if step.evals else None),
+            evals=step.resolved_evals(),
+            max_model_turns=step.max_model_turns,
             on_failure=step.on_failure,
             depends_on=list(step.depends_on),
         )
@@ -104,8 +108,11 @@ class WorkflowService:
                 elif phase == "failure_handled" and meta and meta.on_failure:
                     suffix = f": {error_detail}" if error_detail else ""
                     detail = f"handled by {meta.on_failure}{suffix}"
-                elif phase == "eval_pass" and meta and meta.eval:
-                    detail = f"eval passed ({meta.eval})"
+                elif phase == "eval_pass" and error_detail:
+                    detail = f"eval passed ({error_detail})"
+                elif phase == "eval_retry":
+                    suffix = f": {error_detail}" if error_detail else ""
+                    detail = f"model turn retry{suffix}"
 
                 output = None
                 if phase == "complete":

@@ -21,6 +21,7 @@ NotifyPhase = Literal[
     "start",
     "complete",
     "eval_pass",
+    "eval_retry",
     "eval_fail",
     "failure_handled",
     "error",
@@ -52,6 +53,8 @@ class StepView:
     caller: str
     depends_on: list[str]
     eval: str | None = None
+    evals: list[str] = field(default_factory=list)
+    max_model_turns: int = 1
     on_failure: str | None = None
     status: StepStatus = "pending"
     output: str | None = None

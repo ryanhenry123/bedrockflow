@@ -94,7 +94,7 @@ uv run python -m examples.aws.run_failure
 | `mock_bedrock` | `false` | Skip AWS; use canned response |
 | `mock_response_text` | built-in string | Override mock model output |
 | `force_bedrock_error` | `false` | Raise in mock/live caller for failure demo |
-| `min_response_chars` | `20` | Eval threshold; raise to force eval fail |
+| `min_response_chars` | `40` | Eval length threshold; raise to force retry/fail |
 
 ## Extending
 

@@ -5,6 +5,7 @@ from enum import StrEnum, auto
 import inspect
 from types import UnionType
 from typing import Union, get_args, get_origin, get_type_hints
+from src.models.eval import EvalVerdict
 from utils.log import get_logger
 
 LOGGER = get_logger(__file__)
@@ -31,7 +32,7 @@ class RoleContract:
 
 ROLE_CONTRACTS: dict[Role, RoleContract] = {
     Role.CALLER: RoleContract(arity=1),
-    Role.EVAL: RoleContract(arity=2, return_types=frozenset({bool})),
+    Role.EVAL: RoleContract(arity=2, return_types=frozenset({bool, EvalVerdict})),
     Role.FAILURE: RoleContract(arity=2),
 }
 

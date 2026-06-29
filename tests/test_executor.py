@@ -280,3 +280,82 @@ def test_on_step_listener_reports_phases():
     assert ("a", "complete") in events
     assert ("b", "start") in events
     assert ("b", "complete") in events
+
+
+def test_model_turn_retry_then_passes():
+    from src.models.eval import EvalVerdict
+
+    calls = {"n": 0}
+
+    def caller(ctx: Context) -> str:
+        calls["n"] += 1
+        turn = ctx.get_shared("a__turn")
+        return f"turn-{turn}"
+
+    def eval_fn(ctx: Context, result: object) -> EvalVerdict:
+        if str(result).endswith("-1"):
+            ctx.set_shared("a__retry_reason", "needs revision")
+            return EvalVerdict.RETRY
+        return EvalVerdict.PASS
+
+    g = build_dag(
+        [
+            make_step(
+                "a",
+                caller,
+                eval_func=eval_fn,
+                max_model_turns=3,
+            )
+        ]
+    )
+    ctx = run_workflow(g, Context())
+    assert calls["n"] == 2
+    assert ctx.data["a"] == "turn-2"
+
+
+def test_model_turn_exhaustion_fails_eval():
+    from src.models.eval import EvalVerdict
+
+    def caller(ctx: Context) -> str:
+        return "same"
+
+    def eval_fn(_ctx: Context, _result: object) -> EvalVerdict:
+        return EvalVerdict.RETRY
+
+    g = build_dag(
+        [
+            make_step(
+                "a",
+                caller,
+                eval_func=eval_fn,
+                max_model_turns=2,
+            ),
+            make_step("b", lambda _ctx: "b", depends_on=["a"]),
+        ]
+    )
+    ctx = run_workflow(g, Context())
+    assert "b" not in ctx.data
+    assert "a__eval_failure_reason" in ctx.data
+
+    events: list[tuple[str, str]] = []
+
+    def first(_ctx: Context) -> int:
+        return 1
+
+    def second(_ctx: Context) -> int:
+        return 2
+
+    def on_step(name: str, phase: str, detail: str | None = None) -> None:
+        events.append((name, phase))
+
+    g = build_dag(
+        [
+            make_step("a", first),
+            make_step("b", second, depends_on=["a"]),
+        ]
+    )
+    run_workflow(g, Context(), on_step=on_step)
+    assert ("a", "start") in events
+    assert ("a", "complete") in events
+    assert ("b", "start") in events
+    assert ("b", "complete") in events
