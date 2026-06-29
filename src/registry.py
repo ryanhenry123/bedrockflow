@@ -49,8 +49,16 @@ class StepSpec(BaseModel):
     step_name: str
     caller: str
     eval: str | None = None
+    evals: list[str] = Field(default_factory=list)
+    max_model_turns: int = Field(default=1, ge=1)
     on_failure: str | None = None
     depends_on: list[str] = Field(default_factory=list)
+
+    def resolved_evals(self) -> list[str]:
+        names = list(self.evals)
+        if self.eval and self.eval not in names:
+            names.insert(0, self.eval)
+        return names
 
 
 class WorkflowSpec(BaseModel):
@@ -84,8 +92,7 @@ class WorkflowSpec(BaseModel):
         names: set[str] = set()
         for step in self.steps:
             names.add(step.caller)
-            if step.eval:
-                names.add(step.eval)
+            names.update(step.resolved_evals())
             if step.on_failure:
                 names.add(step.on_failure)
         return names
@@ -97,16 +104,23 @@ class WorkflowSpec(BaseModel):
 class Step(BaseModel):
     step_name: str
     caller_func: Callable[[Context], object]
-    eval_func: Callable[[Context, object], bool] | None = None
+    eval_funcs: list[Callable[[Context, object], object]] = Field(default_factory=list)
+    max_model_turns: int = Field(default=1, ge=1)
     failure_func: Callable[[Context, Exception], object] | None = None
     depends_on: list[str] = Field(default_factory=list)
 
+    @property
+    def eval_func(self) -> Callable[[Context, object], object] | None:
+        return self.eval_funcs[0] if self.eval_funcs else None
+
     @classmethod
     def from_spec(cls, spec: StepSpec) -> Self:
+        eval_names = spec.resolved_evals()
         return cls(
             step_name=spec.step_name,
             caller_func=from_registry(spec.caller, Role.CALLER),
-            eval_func=from_registry(spec.eval, Role.EVAL) if spec.eval else None,
+            eval_funcs=[from_registry(name, Role.EVAL) for name in eval_names],
+            max_model_turns=spec.max_model_turns,
             failure_func=(
                 from_registry(spec.on_failure, Role.FAILURE)
                 if spec.on_failure

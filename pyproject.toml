@@ -27,6 +27,14 @@ ui = [
     "fastapi>=0.135.3",
     "uvicorn>=0.41.0",
     "jinja2>=3.1.6",
+    "matplotlib>=3.10.8",
+    "numpy>=2.3.5",
+    "reportlab>=4.4.6",
+]
+reports = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.3.5",
+    "reportlab>=4.4.6",
 ]
 aws = [
     "boto3>=1.43.36",

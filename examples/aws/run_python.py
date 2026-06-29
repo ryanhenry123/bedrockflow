@@ -25,7 +25,12 @@ AWS_RISK_SUMMARY = WorkflowSpec(
         StepSpec(
             step_name="summarize_risk",
             caller="summarize_risk",
-            eval="validate_summary",
+            evals=[
+                "eval_summary_nonempty",
+                "eval_summary_length",
+                "eval_summary_mentions_symbol",
+            ],
+            max_model_turns=3,
             on_failure="handle_bedrock_failure",
             depends_on=["load_thesis"],
         ),

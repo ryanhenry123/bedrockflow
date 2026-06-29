@@ -1,0 +1,30 @@
+name: research_report
+default_context:
+  topic: Systematic volatility selling crowding and tail risk (2024-2026)
+  model_id: amazon.nova-lite-v1:0
+steps:
+  - step_name: load_research_brief
+    caller: load_research_brief
+    depends_on: []
+
+  - step_name: draft_research_report
+    caller: draft_research_report
+    evals:
+      - eval_report_structure
+      - eval_report_recency
+      - eval_report_references
+      - eval_report_depth
+    max_model_turns: 4
+    on_failure: handle_research_failure
+    depends_on:
+      - load_research_brief
+
+  - step_name: format_research_report
+    caller: format_research_report
+    depends_on:
+      - draft_research_report
+
+  - step_name: render_research_pdf
+    caller: render_research_pdf
+    depends_on:
+      - format_research_report

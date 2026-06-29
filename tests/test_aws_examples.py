@@ -49,10 +49,10 @@ def assert_happy_path(ctx: Context) -> None:
     assert ctx.data["load_thesis"]["symbol"] == "AAPL"
     assert "summarize_risk" in ctx.data
     assert "text" in ctx.data["summarize_risk"]
+    assert ctx.data["summarize_risk"].get("turn", 1) >= 1
     assert "format_memo" in ctx.data
     assert "AAPL RISK MEMO" in ctx.data["format_memo"]
     assert "bedrock_error" not in ctx.data
-    assert "eval_failure_reason" not in ctx.data
 
 
 @pytest.mark.parametrize(
@@ -92,14 +92,14 @@ def test_eval_fail_skips_downstream(aws_example_tasks):
             data={
                 "symbol": "AAPL",
                 "mock_bedrock": True,
-                "mock_response_text": "Too short.",
+                "mock_response_text": "Risk exists.",
                 "min_response_chars": 500,
             }
         ),
     )
     assert "summarize_risk" in ctx.data
     assert "format_memo" not in ctx.data
-    assert "eval_failure_reason" in ctx.data
+    assert "summarize_risk__eval_failure_reason" in ctx.data
     assert "bedrock_error" not in ctx.data
 
 

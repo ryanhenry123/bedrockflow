@@ -83,6 +83,62 @@ h1 {
   min-width: 0;
 }
 
+.reports-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+}
+
+.report-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 153, 0, 0.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  color: var(--orange);
+  text-decoration: none;
+  background: rgba(255, 153, 0, 0.08);
+}
+
+.report-link:hover {
+  border-color: var(--orange);
+  color: #ffc266;
+}
+
+.report-link.pending {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.pdf-download {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(66, 180, 255, 0.45);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+  background: rgba(66, 180, 255, 0.1);
+  white-space: nowrap;
+}
+
+.pdf-download:hover {
+  border-color: var(--blue);
+  background: rgba(66, 180, 255, 0.18);
+}
+
+.pdf-download::before {
+  content: "↓";
+  font-size: 0.9rem;
+}
+
 .launch-label {
   color: var(--muted);
   font-size: 0.72rem;

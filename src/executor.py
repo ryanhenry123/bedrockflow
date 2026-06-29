@@ -7,6 +7,7 @@ from typing import Literal
 import networkx as nx
 from utils.log import get_logger
 from src.dagbuilder import ready_steps
+from src.models.eval import EvalVerdict, run_eval_panel
 from src.registry import Context, Step
 
 LOGGER = get_logger(__file__)
@@ -15,6 +16,7 @@ StepPhase = Literal[
     "start",
     "complete",
     "eval_pass",
+    "eval_retry",
     "eval_fail",
     "failure_handled",
     "error",
@@ -29,6 +31,7 @@ class _StepOutcome:
     status: Literal["completed", "eval_fail", "failure_handled", "error"]
     error: Exception | None = None
     eval_passed: bool = False
+    model_turns: int = 1
 
 
 def _default_workers(batch_size: int) -> int:
@@ -36,15 +39,52 @@ def _default_workers(batch_size: int) -> int:
     return max(1, min(batch_size, cpu))
 
 
-def _execute_step(name: str, step: Step, ctx: Context) -> _StepOutcome:
+def _execute_step(
+    name: str,
+    step: Step,
+    ctx: Context,
+    on_step: StepListener | None = None,
+) -> _StepOutcome:
     try:
-        result = step.caller_func(ctx)
-        ctx.set_shared(name, result)
+        result: object | None = None
+        model_turns = 0
 
-        if step.eval_func and not step.eval_func(ctx, result):
-            return _StepOutcome(name, "eval_fail")
+        while model_turns < step.max_model_turns:
+            model_turns += 1
+            ctx.set_shared(f"{name}__turn", model_turns)
 
-        return _StepOutcome(name, "completed", eval_passed=bool(step.eval_func))
+            result = step.caller_func(ctx)
+            ctx.set_shared(name, result)
+
+            if not step.eval_funcs:
+                return _StepOutcome(name, "completed", model_turns=model_turns)
+
+            verdict, retry_reasons = run_eval_panel(step.eval_funcs, ctx, result, name)
+
+            if verdict is EvalVerdict.OK:
+                for eval_func in step.eval_funcs:
+                    _notify(on_step, name, "eval_pass", eval_func.__name__)
+                return _StepOutcome(
+                    name,
+                    "completed",
+                    eval_passed=True,
+                    model_turns=model_turns,
+                )
+
+            if verdict is EvalVerdict.FAIL:
+                return _StepOutcome(name, "eval_fail", model_turns=model_turns)
+
+            # RETRY — another model turn if budget remains
+            detail = "; ".join(retry_reasons) if retry_reasons else "revision requested"
+            _notify(on_step, name, "eval_retry", detail)
+            if model_turns >= step.max_model_turns:
+                ctx.set_shared(
+                    f"{name}__eval_failure_reason",
+                    f"exhausted {step.max_model_turns} model turn(s): {detail}",
+                )
+                return _StepOutcome(name, "eval_fail", model_turns=model_turns)
+
+        return _StepOutcome(name, "eval_fail", model_turns=model_turns)
     except Exception as exc:
         if step.failure_func:
             step.failure_func(ctx, exc)
@@ -71,8 +111,6 @@ def _apply_outcome(
     on_step: StepListener | None = None,
 ) -> None:
     if outcome.status == "completed":
-        if outcome.eval_passed:
-            _notify(on_step, outcome.name, "eval_pass")
         completed.add(outcome.name)
         _notify(on_step, outcome.name, "complete")
         return
@@ -110,7 +148,9 @@ def _run_batch_serial(
     for name in batch:
         _notify(on_step, name, "start")
         step: Step = g.nodes[name]["step"]
-        _apply_outcome(g, _execute_step(name, step, ctx), completed, skipped, on_step)
+        _apply_outcome(
+            g, _execute_step(name, step, ctx, on_step), completed, skipped, on_step
+        )
 
 
 def _run_batch_parallel(
@@ -128,7 +168,7 @@ def _run_batch_parallel(
     workers = max(1, min(max_workers, len(batch)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
         outcomes = pool.map(
-            lambda name: _execute_step(name, g.nodes[name]["step"], ctx),
+            lambda name: _execute_step(name, g.nodes[name]["step"], ctx, on_step=None),
             batch,
         )
         for outcome in outcomes:

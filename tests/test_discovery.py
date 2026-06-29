@@ -17,7 +17,12 @@ def fresh_catalog():
 
 def test_discovers_all_example_workflows():
     names = sorted(discover_workflows())
-    assert names == ["aws_risk_summary", "daily_report", "parallel_portfolio"]
+    assert names == [
+        "aws_risk_summary",
+        "daily_report",
+        "parallel_portfolio",
+        "research_report",
+    ]
 
 
 def test_resolves_task_modules():
@@ -30,6 +35,7 @@ def test_infers_report_keys():
     assert get_workflow("daily_report").report_key == "format_report"
     assert get_workflow("parallel_portfolio").report_key == "format_portfolio_report"
     assert get_workflow("aws_risk_summary").report_key == "format_memo"
+    assert get_workflow("research_report").report_key == "format_research_report"
 
 
 def test_parallel_portfolio_infers_max_workers():

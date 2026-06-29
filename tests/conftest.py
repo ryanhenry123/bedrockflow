@@ -46,13 +46,19 @@ def make_step(
     *,
     depends_on: list[str] | None = None,
     eval_func: Callable[[Context, object], bool] | None = None,
+    eval_funcs: list[Callable[[Context, object], object]] | None = None,
+    max_model_turns: int = 1,
     failure_func: Callable[[Context, Exception], object] | None = None,
 ) -> Step:
+    resolved_evals = list(eval_funcs or [])
+    if eval_func is not None:
+        resolved_evals.insert(0, eval_func)
     return Step(
         step_name=name,
         caller_func=caller,
         depends_on=depends_on or [],
-        eval_func=eval_func,
+        eval_funcs=resolved_evals,
+        max_model_turns=max_model_turns,
         failure_func=failure_func,
     )
 
@@ -62,6 +68,8 @@ def spec(
     caller: str,
     *,
     eval_name: str | None = None,
+    eval_names: list[str] | None = None,
+    max_model_turns: int = 1,
     on_failure: str | None = None,
     depends_on: list[str] | None = None,
 ) -> StepSpec:
@@ -69,6 +77,8 @@ def spec(
         step_name=step_name,
         caller=caller,
         eval=eval_name,
+        evals=list(eval_names or []),
+        max_model_turns=max_model_turns,
         on_failure=on_failure,
         depends_on=depends_on or [],
     )

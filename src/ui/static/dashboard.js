@@ -521,6 +521,26 @@
     return selected ? `/api/runs?run=${encodeURIComponent(selected)}` : "/api/runs";
   };
 
+  const updatePdfLink = (row, run) => {
+    const head = row.querySelector(".pipeline-head");
+    if (!head) {
+      return;
+    }
+    let link = head.querySelector(".pdf-download");
+    if (!run.pdf_download_url) {
+      link?.remove();
+      return;
+    }
+    if (!link) {
+      link = document.createElement("a");
+      link.className = "pdf-download";
+      link.textContent = "Download PDF";
+      link.setAttribute("download", "");
+      head.appendChild(link);
+    }
+    link.href = run.pdf_download_url;
+  };
+
   const applyRuns = (payload) => {
     const runs = payload.runs ?? [];
     const history = payload.history ?? {};
@@ -569,6 +589,7 @@
           updateStepTemplate(node, step);
         }
       }
+      updatePdfLink(row, run);
     }
 
     if (liveBadge) {

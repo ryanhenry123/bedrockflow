@@ -56,11 +56,21 @@ def _register_names_in_source(path: Path) -> set[str]:
 
 
 def _infer_report_key(spec: WorkflowSpec) -> str | None:
+    if spec.report_key:
+        return spec.report_key
     depended_on = {dep for step in spec.steps for dep in step.depends_on}
     sinks = [step.step_name for step in spec.steps if step.step_name not in depended_on]
+    format_sinks = [name for name in sinks if name.startswith("format_")]
+    if len(format_sinks) == 1:
+        return format_sinks[0]
     if len(sinks) == 1:
-        return sinks[0]
-    return spec.report_key
+        sink = sinks[0]
+        if sink.startswith("render_"):
+            step = next(s for s in spec.steps if s.step_name == sink)
+            if step.depends_on:
+                return step.depends_on[-1]
+        return sink
+    return None
 
 
 def _infer_max_workers(spec: WorkflowSpec) -> int | None:
