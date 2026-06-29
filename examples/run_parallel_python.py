@@ -14,6 +14,8 @@ from src.registry import Context, StepSpec, WorkflowSpec
 
 PARALLEL_PORTFOLIO = WorkflowSpec(
     name="parallel_portfolio",
+    max_workers=2,
+    default_context={"symbols": ["AAPL", "MSFT"]},
     steps=[
         StepSpec(step_name="load_watchlist", caller="load_watchlist"),
         StepSpec(

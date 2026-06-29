@@ -56,6 +56,10 @@ class StepSpec(BaseModel):
 class WorkflowSpec(BaseModel):
     name: str
     steps: list[StepSpec]
+    task_module: str | None = None
+    default_context: dict[str, object] = Field(default_factory=dict)
+    report_key: str | None = None
+    max_workers: int | None = None
 
     @model_validator(mode="after")
     def unique_step_names(self) -> Self:

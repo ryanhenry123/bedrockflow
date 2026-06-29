@@ -14,6 +14,7 @@ from src.registry import Context, StepSpec, WorkflowSpec
 
 DAILY_REPORT = WorkflowSpec(
     name="daily_report",
+    default_context={"symbol": "MSFT"},
     steps=[
         StepSpec(step_name="load_symbol", caller="load_symbol"),
         StepSpec(

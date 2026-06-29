@@ -3,7 +3,8 @@ import time
 from fastapi.testclient import TestClient
 
 from src.ui.app import app, store
-from src.ui.service import DEFAULT_CONTEXT, WorkflowService
+from src.ui.discovery import get_workflow
+from src.ui.service import WorkflowService
 
 
 def test_service_records_eval_pass_and_waves(example_tasks):
@@ -49,10 +50,12 @@ def test_api_runs_includes_eval_roles_and_waves(example_tasks):
 
 
 def test_service_records_failure_handled_and_skips_downstream(
-    example_tasks, monkeypatch
+    example_tasks,
 ):
     store._runs.clear()
-    monkeypatch.setitem(DEFAULT_CONTEXT, "daily_report", {"symbol": "UNKNOWN"})
+    definition = get_workflow("daily_report")
+    original = dict(definition.default_context)
+    definition.default_context = {**original, "symbol": "UNKNOWN"}
     service = WorkflowService(store)
     workflow_id = service.start_run("daily_report")
     deadline = time.time() + 5
@@ -76,3 +79,4 @@ def test_service_records_failure_handled_and_skips_downstream(
         event for event in summarize.events if event.phase == "inherited_skip"
     ]
     assert skip_events
+    definition.default_context = original
