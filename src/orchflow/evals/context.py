@@ -3,11 +3,16 @@ from __future__ import annotations
 
 class Context(dict):
     def feedback(self, msg: str) -> None:
-        self["_pending_feedback"] = msg
+        if msg.strip():
+            self.setdefault("_pending_feedback", []).append(msg.strip())
 
-    def pop_feedback(self) -> str | None:
-        msg = self.pop("_pending_feedback", None)
-        return msg.strip() if isinstance(msg, str) and msg.strip() else None
+    def drain_feedback(self) -> list[str]:
+        items = self.pop("_pending_feedback", [])
+        return (
+            [str(x).strip() for x in items if str(x).strip()]
+            if isinstance(items, list)
+            else []
+        )
 
     def set_feedback(self, reasons: list[str]) -> None:
         self["_feedback"] = reasons

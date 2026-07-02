@@ -20,11 +20,11 @@ class Turn:
         if not self.is_retry:
             return [user_message(initial)]
         # Only the latest draft — stacking every prior turn bloats context and
-        # the model keeps truncating the tail sections (References, etc.).
+        # the model truncates tail sections on long retries.
         msgs = [user_message(initial), self.messages[-1]]
         msgs.append(
             user_message(
-                "Revise your full note (all sections). Address:\n- "
+                "Revise your full memo (all sections). Address:\n- "
                 + "\n- ".join(self.feedback)
             )
         )

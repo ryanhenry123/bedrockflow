@@ -4,7 +4,7 @@ from collections.abc import Callable, Sequence
 from enum import StrEnum
 from typing import Any
 
-from pydantic.types import T
+from orchflow.evals.types import EvalResult
 
 
 class EvalVerdict(StrEnum):
@@ -13,7 +13,7 @@ class EvalVerdict(StrEnum):
     FAIL = "fail"
 
 
-EvalFn = Callable[[Any, Any], "EvalVerdict | bool | None"]
+EvalFn = Callable[[Any, EvalResult], "EvalVerdict | bool | None"]
 
 
 def normalize(result: EvalVerdict | bool | None) -> EvalVerdict:
@@ -25,7 +25,7 @@ def normalize(result: EvalVerdict | bool | None) -> EvalVerdict:
 
 
 def run_panel(
-    evals: Sequence[EvalFn], ctx: Any, result: Any
+    evals: Sequence[EvalFn], ctx: Any, result: EvalResult
 ) -> tuple[EvalVerdict, list[str]]:
     reasons: list[str] = []
     saw_retry = False
@@ -33,10 +33,9 @@ def run_panel(
         verdict = normalize(fn(ctx, result))
         if verdict is EvalVerdict.FAIL:
             return EvalVerdict.FAIL, reasons
-        elif verdict is EvalVerdict.RETRY:
+        if verdict is EvalVerdict.RETRY:
             saw_retry = True
-            if msg := ctx.pop_feedback():
-                reasons.append(msg)
+            reasons.extend(ctx.drain_feedback())
     if saw_retry:
         return EvalVerdict.RETRY, reasons or ["revision requested"]
     return EvalVerdict.OK, []

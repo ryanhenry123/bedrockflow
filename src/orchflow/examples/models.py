@@ -1,6 +1,6 @@
 from os import getenv
 
-DEFAULT_MODEL = "anthropic.claude-sonnet-4-6"
+DEFAULT_MODEL = "us.anthropic.claude-sonnet-4-6"
 
 
 def resolve_model_id(

@@ -1,5 +1,5 @@
 from orchflow.evals.context import Context
-from orchflow.evals.runwithevals import run_with_evals
+from orchflow.evals.runwithevals import MaxTurnsExceeded, run_with_evals
 from orchflow.providers.aws.bedrockruntime import converse
 from orchflow.examples.evals import DRAFT_EVALS
 from orchflow.examples.prompts import SYSTEM, draft_prompt
@@ -43,7 +43,10 @@ def main() -> None:
         min_trades=1,
     )
     ctx["brief"] = load_brief(ctx)
-    out = draft_trade_memo(ctx)
+    try:
+        out = draft_trade_memo(ctx)
+    except MaxTurnsExceeded:
+        raise SystemExit(1) from None
     print(out.result.text)
     print(
         f"\n--- {out.turns} turn(s), {out.result.usage.output_tokens} output tokens ---"

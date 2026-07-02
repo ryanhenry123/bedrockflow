@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class EnvConfig(BaseSettings):
-    # TODO: Extend this as more providers come into play
     model_config = SettingsConfigDict(
         env_prefix="ORCHFLOW_",
         env_file=".env",
@@ -15,6 +14,7 @@ class EnvConfig(BaseSettings):
     )
 
     visible_turns: bool = True
+    print_last_draft: bool = True
 
 
 @lru_cache

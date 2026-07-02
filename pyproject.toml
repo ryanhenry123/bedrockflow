@@ -1,7 +1,7 @@
 [project]
 name = "orchflow"
 version = "0.1.0"
-description = "Add your description here"
+description = "Composable quality gates for Bedrock scripts — call, eval, retry."
 readme = "README.md"
 authors = [
     { name = "RyanHenry", email = "ryandhenry.12@gmail.com" }
@@ -29,4 +29,13 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "black>=26.5.1",
+    "pytest>=8.4.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]

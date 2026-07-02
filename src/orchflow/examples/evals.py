@@ -1,7 +1,7 @@
 import re
 
+from orchflow.evals.types import EvalResult
 from orchflow.evals.verdict import EvalVerdict
-from orchflow.providers.aws.bedrockruntime import ConverseResult
 
 REQUIRED_SECTIONS = (
     "## Verdict",
@@ -11,8 +11,16 @@ REQUIRED_SECTIONS = (
     "## Invalidation",
 )
 
+SECTION_SPEC: dict[str, str] = {
+    "## Verdict": "one line stance + desk action",
+    "## Trades": "numbered; bps NAV or % with max loss/premium",
+    "## Triggers": "markdown table: Signal | Level | Action (2+ data rows)",
+    "## Thesis": "max 3 bullets tied to evidence years",
+    "## Invalidation": "2-3 concrete falsifiers",
+}
 
-def _text(result: ConverseResult) -> str:
+
+def _text(result: EvalResult) -> str:
     return result.text.strip()
 
 
@@ -28,20 +36,26 @@ def _section(text: str, heading: str) -> str:
     return block[: nxt.start()] if nxt else block
 
 
-def eval_content_filtered(_ctx, result) -> EvalVerdict:
+def _table_data_rows(block: str) -> int:
+    rows = [ln.strip() for ln in block.splitlines() if ln.strip().startswith("|")]
+    non_sep = [r for r in rows if not re.match(r"^\|[\s\-:|]+\|$", r)]
+    return max(0, len(non_sep) - 1)
+
+
+def eval_content_filtered(_ctx, result: EvalResult) -> EvalVerdict:
     if result.stop_reason == "content_filtered":
         return EvalVerdict.FAIL
     return EvalVerdict.OK
 
 
-def eval_not_truncated(ctx, result) -> EvalVerdict:
+def eval_not_truncated(ctx, result: EvalResult) -> EvalVerdict:
     if result.stop_reason == "max_tokens":
         ctx.feedback("output truncated; shorten prose but keep all 5 sections complete")
         return EvalVerdict.RETRY
     return EvalVerdict.OK
 
 
-def eval_structure(_ctx, result) -> EvalVerdict:
+def eval_structure(_ctx, result: EvalResult) -> EvalVerdict:
     text = _text(result)
     missing = [s for s in REQUIRED_SECTIONS if s not in text]
     if missing:
@@ -50,10 +64,10 @@ def eval_structure(_ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 
-def eval_verdict_actionable(ctx, result) -> EvalVerdict:
+def eval_verdict_actionable(ctx, result: EvalResult) -> EvalVerdict:
     block = _section(_text(result), "## Verdict")
     if not re.search(
-        r"\b(hedge|reduce|trim|cut|add|initiate|watch|avoid|hold|flat)\b",
+        r"\b(hedge|reduce|trim|cut|add|initiate|watch|avoid|hold|flat|exit|scale)\b",
         block,
         re.I,
     ):
@@ -64,9 +78,13 @@ def eval_verdict_actionable(ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 
-def eval_sized_trades(ctx, result) -> EvalVerdict:
+def eval_sized_trades(ctx, result: EvalResult) -> EvalVerdict:
     block = _section(_text(result), "## Trades")
-    if not re.search(r"\bbps\b|% of NAV|max (loss|premium)", block, re.I):
+    if not re.search(
+        r"\bbps\b|basis points|%(\s+of)?\s*NAV|max (loss|premium)",
+        block,
+        re.I,
+    ):
         ctx.feedback(
             "## Trades: size at least one leg in bps NAV or % with max loss/premium"
         )
@@ -78,10 +96,9 @@ def eval_sized_trades(ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 
-def eval_triggers(ctx, result) -> EvalVerdict:
+def eval_triggers(ctx, result: EvalResult) -> EvalVerdict:
     block = _section(_text(result), "## Triggers")
-    rows = [ln for ln in block.splitlines() if ln.strip().startswith("|")]
-    if len(rows) < 4:
+    if _table_data_rows(block) < 2:
         ctx.feedback(
             "## Triggers: table with Signal | Level | Action and at least 2 data rows"
         )
@@ -92,7 +109,7 @@ def eval_triggers(ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 
-def eval_brevity(ctx, result) -> EvalVerdict:
+def eval_brevity(ctx, result: EvalResult) -> EvalVerdict:
     n = _words(_text(result))
     cap = ctx.get("max_words", 600)
     if n > cap:
@@ -105,7 +122,7 @@ def eval_brevity(ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 
-def eval_recency(ctx, result) -> EvalVerdict:
+def eval_recency(ctx, result: EvalResult) -> EvalVerdict:
     start, end = ctx.get("evidence_years", (2024, 2026))
     if not re.search(
         rf"\b({'|'.join(str(y) for y in range(start, end + 1))})\b", _text(result)
@@ -115,7 +132,7 @@ def eval_recency(ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 
-def eval_invalidation(ctx, result) -> EvalVerdict:
+def eval_invalidation(ctx, result: EvalResult) -> EvalVerdict:
     block = _section(_text(result), "## Invalidation")
     if _words(block) < 15:
         ctx.feedback("## Invalidation: 2-3 concrete falsifiers (what proves us wrong)")
