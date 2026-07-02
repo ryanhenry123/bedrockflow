@@ -2,25 +2,25 @@ from unittest.mock import patch
 
 import pytest
 
-from orchflow.cli import main
-from orchflow.security.bandit import build_default_args, run_bandit
+from bedrockflow.cli import main
+from bedrockflow.security.bandit import build_default_args, run_bandit
 
 
 def test_build_default_args():
-    args = build_default_args("src/orchflow", exit_code=1)
-    assert args[:2] == ["-r", "src/orchflow"]
+    args = build_default_args("src/bedrockflow", exit_code=1)
+    assert args[:2] == ["-r", "src/bedrockflow"]
     assert "-ll" in args
     assert "--exit-zero" not in args
 
 
 def test_build_default_args_exit_zero():
-    args = build_default_args("src/orchflow", exit_code=0)
+    args = build_default_args("src/bedrockflow", exit_code=0)
     assert "--exit-zero" in args
 
 
 def test_run_bandit_default_scan():
-    with patch("orchflow.security.bandit._bandit_available", return_value=True):
-        with patch("orchflow.security.bandit.subprocess.run") as run:
+    with patch("bedrockflow.security.bandit._bandit_available", return_value=True):
+        with patch("bedrockflow.security.bandit.subprocess.run") as run:
             run.return_value.returncode = 0
             code = run_bandit()
     assert code == 0
@@ -30,8 +30,8 @@ def test_run_bandit_default_scan():
 
 
 def test_run_bandit_passthrough():
-    with patch("orchflow.security.bandit._bandit_available", return_value=True):
-        with patch("orchflow.security.bandit.subprocess.run") as run:
+    with patch("bedrockflow.security.bandit._bandit_available", return_value=True):
+        with patch("bedrockflow.security.bandit.subprocess.run") as run:
             run.return_value.returncode = 0
             run_bandit(["-r", "src", "-f", "json"])
     cmd = run.call_args.args[0]
@@ -40,7 +40,7 @@ def test_run_bandit_passthrough():
 
 
 def test_cli_bandit_subcommand():
-    with patch("orchflow.security.bandit.run_bandit", return_value=0) as run:
+    with patch("bedrockflow.security.bandit.run_bandit", return_value=0) as run:
         with pytest.raises(SystemExit) as exc:
             main(["bandit", "--exit-code", "0"])
     assert exc.value.code == 0

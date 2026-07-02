@@ -39,17 +39,17 @@ jobs:
       - name: Install wheel without extras
         run: |
           uv venv /tmp/base-venv
-          uv pip install --python /tmp/base-venv/bin/python dist/orchflow-*.whl
+          uv pip install --python /tmp/base-venv/bin/python dist/bedrockflow-*.whl
 
       - name: Smoke import
         run: |
           /tmp/base-venv/bin/python -c \
-            "from orchflow import markdown_sections, __version__; print(__version__, len(markdown_sections('## Summary')))"
+            "from bedrockflow import markdown_sections, __version__; print(__version__, len(markdown_sections('## Summary')))"
 
       - name: Smoke offline eval CLI
         run: |
-          /tmp/base-venv/bin/orchflow eval tests/fixtures/simple/good.md \
-            --panel orchflow.examples.simple_evals:SIMPLE_EVALS
+          /tmp/base-venv/bin/bedrockflow eval tests/fixtures/simple/good.md \
+            --panel bedrockflow.examples.simple_evals:SIMPLE_EVALS
 
   fixture-eval:
     runs-on: ubuntu-latest
@@ -65,15 +65,15 @@ jobs:
 
       - name: Gate trade memo fixtures
         run: |
-          uv run orchflow eval tests/fixtures/trade_memo/good_memo.md \
-            --panel orchflow.examples.evals:DRAFT_EVALS \
+          uv run bedrockflow eval tests/fixtures/trade_memo/good_memo.md \
+            --panel bedrockflow.examples.evals:DRAFT_EVALS \
             --ctx '{"evidence_years":[2024,2026],"max_words":600,"min_words":100,"min_trades":1}' \
             --report eval-report-trade.json
 
       - name: Gate simple summary fixtures
         run: |
-          uv run orchflow eval tests/fixtures/simple/good.md \
-            --panel orchflow.examples.simple_evals:SIMPLE_EVALS \
+          uv run bedrockflow eval tests/fixtures/simple/good.md \
+            --panel bedrockflow.examples.simple_evals:SIMPLE_EVALS \
             --report eval-report-simple.json
 
       - name: Upload eval reports

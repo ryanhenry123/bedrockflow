@@ -44,7 +44,7 @@ repos:
 
       - id: bandit
         name: bandit (uv)
-        entry: uv run orchflow bandit
+        entry: uv run bedrockflow bandit
         language: system
         pass_filenames: false
         types: [python]

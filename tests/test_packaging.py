@@ -17,7 +17,7 @@ def wheel_path() -> Path:
         capture_output=True,
         text=True,
     )
-    wheels = sorted(DIST.glob("orchflow-*.whl"))
+    wheels = sorted(DIST.glob("bedrockflow-*.whl"))
     assert wheels, "uv build did not produce a wheel"
     return wheels[-1]
 
@@ -32,7 +32,7 @@ def test_core_import_without_aws_extra(wheel_path: Path, tmp_path: Path):
         [
             python,
             "-c",
-            "from orchflow import Context, markdown_sections, __version__; "
+            "from bedrockflow import Context, markdown_sections, __version__; "
             "assert __version__; "
             "assert markdown_sections('## Summary')",
         ],
@@ -46,16 +46,16 @@ def test_cli_eval_without_aws_extra(wheel_path: Path, tmp_path: Path):
     venv = tmp_path / "venv"
     subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
     pip = venv / "bin" / "pip"
-    orchflow = venv / "bin" / "orchflow"
+    bedrockflow = venv / "bin" / "bedrockflow"
     fixture = ROOT / "tests" / "fixtures" / "simple" / "good.md"
     subprocess.run([pip, "install", str(wheel_path)], check=True, capture_output=True)
     proc = subprocess.run(
         [
-            orchflow,
+            bedrockflow,
             "eval",
             str(fixture),
             "--panel",
-            "orchflow.examples.simple_evals:SIMPLE_EVALS",
+            "bedrockflow.examples.simple_evals:SIMPLE_EVALS",
         ],
         capture_output=True,
         text=True,

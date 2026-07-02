@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from orchflow.evals.context import Context
-from orchflow.evals.verdict import EvalVerdict, run_panel
-from orchflow.examples.evals import DRAFT_EVALS
+from bedrockflow.evals.context import Context
+from bedrockflow.evals.verdict import EvalVerdict, run_panel
+from bedrockflow.examples.evals import DRAFT_EVALS
 
 FIXTURES = Path(__file__).parent / "fixtures"
 TRADE_CTX = Context(
@@ -29,7 +29,7 @@ def test_trade_memo_eval_panel_fails_missing_sections():
 
 
 def test_verdict_accepts_inflected_desk_actions():
-    from orchflow.examples.evals import eval_verdict_actionable
+    from bedrockflow.examples.evals import eval_verdict_actionable
 
     verdict = (
         "## Verdict\n"

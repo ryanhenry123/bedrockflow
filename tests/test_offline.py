@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from orchflow.evals.offline import eval_fixture, eval_paths, load_panel
-from orchflow.evals.verdict import EvalVerdict
-from orchflow.examples.evals import DRAFT_EVALS
-from orchflow.examples.simple_evals import SIMPLE_EVALS
+from bedrockflow.evals.offline import eval_fixture, eval_paths, load_panel
+from bedrockflow.evals.verdict import EvalVerdict
+from bedrockflow.examples.evals import DRAFT_EVALS
+from bedrockflow.examples.simple_evals import SIMPLE_EVALS
 
 FIXTURES = Path(__file__).parent / "fixtures"
 TRADE_CTX = {
@@ -15,7 +15,7 @@ TRADE_CTX = {
 
 
 def test_load_panel():
-    panel = load_panel("orchflow.examples.evals:DRAFT_EVALS")
+    panel = load_panel("bedrockflow.examples.evals:DRAFT_EVALS")
     assert panel is DRAFT_EVALS
 
 
@@ -52,7 +52,7 @@ def test_simple_fixture_passes():
 
 
 def test_only_filter():
-    from orchflow.evals.names import filter_evals
+    from bedrockflow.evals.names import filter_evals
 
     filtered = filter_evals(DRAFT_EVALS, ["structure"])
     assert len(filtered) == 1

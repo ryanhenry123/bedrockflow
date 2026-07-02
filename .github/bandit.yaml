@@ -1,4 +1,4 @@
-# Bandit config for orchflow (see: orchflow bandit)
+# Bandit config for bedrockflow (see: bedrockflow bandit)
 exclude_dirs:
   - tests
   - .venv

@@ -2,8 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from conftest import MockResult
-from orchflow.evals.checks import (
+from bedrockflow.evals.checks import (
     fail_on_filter,
     min_length,
     require_json,
@@ -11,8 +10,9 @@ from orchflow.evals.checks import (
     stop_not_truncated,
     word_count,
 )
-from orchflow.evals.context import Context
-from orchflow.evals.verdict import EvalVerdict, run_panel
+from bedrockflow.evals.context import Context
+from bedrockflow.evals.verdict import EvalVerdict, run_panel
+from conftest import MockResult
 
 
 def test_require_sections_passes():
@@ -82,7 +82,7 @@ def test_require_json_strips_fences():
 
 
 def test_record_output(tmp_path: Path):
-    from orchflow.evals.record import record_output
+    from bedrockflow.evals.record import record_output
 
     path = record_output(tmp_path / "out" / "draft.md", "hello")
     assert path.read_text() == "hello"

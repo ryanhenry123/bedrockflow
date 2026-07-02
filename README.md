@@ -1,4 +1,4 @@
-# orchflow
+# bedrockflow
 
 **CI for Bedrock outputs** — composable gates, correct retries, offline fixtures.
 
@@ -8,10 +8,10 @@ MIT License. See [LICENSE](LICENSE).
 
 ```bash
 # Offline eval panels and fixture CI (no AWS credentials)
-pip install orchflow
+pip install bedrockflow
 
 # Live Bedrock Converse retry loops
-pip install "orchflow[aws]"
+pip install "bedrockflow[aws]"
 ```
 
 Python 3.11+.
@@ -21,9 +21,9 @@ Python 3.11+.
 Works with the base install — no boto3 required:
 
 ```python
-from orchflow import Context, markdown_sections, run_panel
-from orchflow.evals.offline import eval_text
-from orchflow.evals.verdict import EvalVerdict
+from bedrockflow import Context, markdown_sections, run_panel
+from bedrockflow.evals.offline import eval_text
+from bedrockflow.evals.verdict import EvalVerdict
 
 evals = markdown_sections("## Summary", "## Risks", max_words=300)
 verdict, reasons = eval_text("## Summary\n...\n\n## Risks\n...", evals)
@@ -31,18 +31,18 @@ assert verdict is EvalVerdict.OK
 ```
 
 ```bash
-orchflow eval tests/fixtures/simple/good.md \
-  --panel orchflow.examples.simple_evals:SIMPLE_EVALS
+bedrockflow eval tests/fixtures/simple/good.md \
+  --panel bedrockflow.examples.simple_evals:SIMPLE_EVALS
 ```
 
 > **`--panel` loads arbitrary Python** (`module.path:ATTRIBUTE`). Only point it at modules you trust.
 
 ## Quick start (Bedrock)
 
-Requires `pip install "orchflow[aws]"` and configured AWS credentials:
+Requires `pip install "bedrockflow[aws]"` and configured AWS credentials:
 
 ```python
-from orchflow import Context, converse_with_evals, markdown_sections
+from bedrockflow import Context, converse_with_evals, markdown_sections
 
 out = converse_with_evals(
     "us.anthropic.claude-sonnet-4-6",
@@ -60,29 +60,29 @@ See [docs/COOKBOOK.md](docs/COOKBOOK.md) for JSON gates, tables, model compare, 
 
 ```bash
 # Offline fixture CI (no AWS)
-orchflow eval tests/fixtures/simple/ --panel orchflow.examples.simple_evals:SIMPLE_EVALS
-orchflow eval draft.md --only structure --json
+bedrockflow eval tests/fixtures/simple/ --panel bedrockflow.examples.simple_evals:SIMPLE_EVALS
+bedrockflow eval draft.md --only structure --json
 
 # Live Bedrock (requires [aws])
-orchflow run --example simple
-orchflow run --example trade_memo --record drafts/latest.md --trace runs/latest.json
-orchflow run --example trade_memo --cache-initial
+bedrockflow run --example simple
+bedrockflow run --example trade_memo --record drafts/latest.md --trace runs/latest.json
+bedrockflow run --example trade_memo --cache-initial
 
 # Model A/B on the same panel
-orchflow compare us.anthropic.claude-sonnet-4-6 us.amazon.nova-pro-v1:0 --example simple
+bedrockflow compare us.anthropic.claude-sonnet-4-6 us.amazon.nova-pro-v1:0 --example simple
 
 # Security scanning
-orchflow trivy
-orchflow trivy --docker
-orchflow bandit
+bedrockflow trivy
+bedrockflow trivy --docker
+bedrockflow bandit
 ```
 
-Demo eval panels live under `orchflow.examples` (trade memo, simple summary). They ship for reference but are not required for library use.
+Demo eval panels live under `bedrockflow.examples` (trade memo, simple summary). They ship for reference but are not required for library use.
 
 ## Starter panels
 
 ```python
-from orchflow import markdown_sections, json_object, no_preamble, csv_table
+from bedrockflow import markdown_sections, json_object, no_preamble, csv_table
 ```
 
 ## Progress output (opt-in)
@@ -90,13 +90,13 @@ from orchflow import markdown_sections, json_object, no_preamble, csv_table
 Retry progress bars and last-draft stderr dumps are off by default:
 
 ```bash
-export ORCHFLOW_VISIBLE_TURNS=1
-export ORCHFLOW_PRINT_LAST_DRAFT=1
+export BEDROCKFLOW_VISIBLE_TURNS=1
+export BEDROCKFLOW_PRINT_LAST_DRAFT=1
 ```
 
 ## Trace artifacts
 
-`orchflow run --trace runs/latest.json` writes turns, named eval steps, token totals (including cache read/write).
+`bedrockflow run --trace runs/latest.json` writes turns, named eval steps, token totals (including cache read/write).
 
 ## CI
 

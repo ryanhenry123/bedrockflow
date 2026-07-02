@@ -1,5 +1,5 @@
 [project]
-name = "orchflow"
+name = "bedrockflow"
 version = "0.3.0"
 description = "Quality gates and retry loops for Amazon Bedrock Converse."
 readme = "README.md"
@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.scripts]
-orchflow = "orchflow.cli:main"
+bedrockflow = "bedrockflow.cli:main"
 
 [project.optional-dependencies]
 aws = [
@@ -35,9 +35,9 @@ aws = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ryanhenry123/orchflow"
-Repository = "https://github.com/ryanhenry123/orchflow"
-Documentation = "https://github.com/ryanhenry123/orchflow#readme"
+Homepage = "https://github.com/ryanhenry123/bedrockflow"
+Repository = "https://github.com/ryanhenry123/bedrockflow"
+Documentation = "https://github.com/ryanhenry123/bedrockflow#readme"
 
 [build-system]
 requires = ["uv_build>=0.11.25,<0.12.0"]
@@ -71,8 +71,8 @@ ignore = ["E501", "SIM108", "SIM117"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
-"src/orchflow/security/**" = ["S603", "S404"]
-"src/orchflow/providers/aws/bedrock.py" = ["SIM102"]
+"src/bedrockflow/security/**" = ["S603", "S404"]
+"src/bedrockflow/providers/aws/bedrock.py" = ["SIM102"]
 
 [tool.uv.build-backend]
 source-exclude = [

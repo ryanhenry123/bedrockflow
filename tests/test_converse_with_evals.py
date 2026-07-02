@@ -1,7 +1,7 @@
-from orchflow.evals.context import Context
-from orchflow.evals.verdict import EvalVerdict
-from orchflow.providers.aws.bedrockruntime import ConverseResult, TokenUsage
-from orchflow.providers.aws.converse_with_evals import converse_with_evals
+from bedrockflow.evals.context import Context
+from bedrockflow.evals.verdict import EvalVerdict
+from bedrockflow.providers.aws.bedrockruntime import ConverseResult, TokenUsage
+from bedrockflow.providers.aws.converse_with_evals import converse_with_evals
 
 
 def _result(text: str) -> ConverseResult:
@@ -24,7 +24,7 @@ def test_converse_with_evals_retries_until_ok(monkeypatch):
         return _result("This answer is long enough to pass the check easily.")
 
     monkeypatch.setattr(
-        "orchflow.providers.aws.converse_with_evals.converse",
+        "bedrockflow.providers.aws.converse_with_evals.converse",
         fake_converse,
     )
 
