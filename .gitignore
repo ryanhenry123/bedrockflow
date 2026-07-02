@@ -1,14 +1,64 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-dist/
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Packaging / build
 build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+*.whl
+
+# uv
+.uv/
+
+# Testing / coverage
 .pytest_cache/
-.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# Type checkers / linters
 .mypy_cache/
-.pre-commit/
-node_modules/
-*.env*
-modelprovider/modelproviders.py
-var/reports/
+.ruff_cache/
+.pytype/
+.pyre/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+.aws/
+
+# Logs / local output
+*.log
+.cache/
+
+
+# Generated Files
+**_gen**
