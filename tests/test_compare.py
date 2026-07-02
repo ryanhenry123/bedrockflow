@@ -1,7 +1,7 @@
+from bedrockflow.evals.context import Context
+from bedrockflow.evals.verdict import EvalVerdict
+from bedrockflow.providers.aws.converse_with_evals import compare_models
 from conftest import MockResult
-from orchflow.evals.context import Context
-from orchflow.evals.verdict import EvalVerdict
-from orchflow.providers.aws.converse_with_evals import compare_models
 
 
 def test_compare_models_ranks_pass_fail(monkeypatch):
@@ -14,7 +14,7 @@ def test_compare_models_ranks_pass_fail(monkeypatch):
         return MockResult("long enough passing answer here", output_tokens=9)
 
     monkeypatch.setattr(
-        "orchflow.providers.aws.converse_with_evals.converse",
+        "bedrockflow.providers.aws.converse_with_evals.converse",
         fake_converse,
     )
 

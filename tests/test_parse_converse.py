@@ -1,4 +1,4 @@
-from orchflow.providers.aws.bedrockruntime import parse_converse_response
+from bedrockflow.providers.aws.bedrockruntime import parse_converse_response
 
 SAMPLE_RESPONSE = {
     "output": {

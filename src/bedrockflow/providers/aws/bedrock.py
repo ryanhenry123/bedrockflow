@@ -1,0 +1,181 @@
+from __future__ import annotations
+
+import re
+import typing
+from collections import defaultdict
+from datetime import UTC, datetime
+from enum import StrEnum
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mypy_boto3_bedrock import BedrockClient
+
+CLIENT: BedrockClient | None = None
+
+
+def get_client() -> BedrockClient:
+    global CLIENT
+    if CLIENT is None:
+        try:
+            from boto3 import client
+        except ImportError as e:
+            raise ImportError(
+                "AWS support requires boto3. Install with: pip install bedrockflow[aws]"
+            ) from e
+        CLIENT = client("bedrock")
+    return CLIENT
+
+
+def _member_name(value: str) -> str:
+    name = re.sub(r"[^0-9A-Za-z_]", "_", value)
+    if name[0].isdigit():
+        name = f"M_{name}"
+    return name.upper()
+
+
+def literal_to_strenum(name: str, literal_type: object) -> type[StrEnum]:
+    values = typing.get_args(literal_type)
+    return StrEnum(name, {_member_name(v): v for v in values})
+
+
+def aws_schema_enums() -> dict[str, type[StrEnum]]:
+    from mypy_boto3_bedrock import literals
+
+    return {
+        "InputModality": literal_to_strenum(
+            "InputModality", literals.ModelModalityType
+        ),
+        "OutputModality": literal_to_strenum(
+            "OutputModality", literals.ModelModalityType
+        ),
+        "CustomizationSupported": literal_to_strenum(
+            "CustomizationSupported", literals.ModelCustomizationType
+        ),
+        "InferenceTypeSupported": literal_to_strenum(
+            "InferenceTypeSupported", literals.InferenceTypeType
+        ),
+        "ModelLifecycleStatus": literal_to_strenum(
+            "ModelLifecycleStatus", literals.FoundationModelLifecycleStatusType
+        ),
+    }
+
+
+def harvest_catalog(
+    summaries: list[dict],
+) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+    flat: dict[str, set[str]] = defaultdict(set)
+    by_provider: dict[str, set[str]] = defaultdict(set)
+
+    for m in summaries:
+        model_id = m["modelId"]
+        flat["FoundationModelId"].add(model_id)
+
+        if provider := m.get("providerName"):
+            flat["ProviderName"].add(provider)
+            by_provider[provider].add(model_id)
+
+        for x in m.get("inputModalities", []):
+            flat["InputModalityInUse"].add(x)
+        for x in m.get("outputModalities", []):
+            flat["OutputModalityInUse"].add(x)
+        for x in m.get("customizationsSupported", []):
+            flat["CustomizationSupportedInUse"].add(x)
+        for x in m.get("inferenceTypesSupported", []):
+            flat["InferenceTypeSupportedInUse"].add(x)
+        if lc := m.get("modelLifecycle"):
+            if status := lc.get("status"):
+                flat["ModelLifecycleStatusInUse"].add(status)
+
+    return flat, dict(by_provider)
+
+
+def sets_to_strenums(groups: dict[str, set[str]]) -> dict[str, type[StrEnum]]:
+    return {
+        name: StrEnum(name, {_member_name(v): v for v in sorted(values)})
+        for name, values in groups.items()
+        if values
+    }
+
+
+def render_enum_class(enum_cls: type[StrEnum]) -> str:
+    lines = [f"class {enum_cls.__name__}(StrEnum):"]
+    for member in enum_cls:
+        lines.append(f"    {_member_name(member.value)} = {member.value!r}")
+    return "\n".join(lines)
+
+
+def _enum_ref(enum_cls_name: str, value: str) -> str:
+    return f"{enum_cls_name}.{_member_name(value)}"
+
+
+def render_provider_links(by_provider: dict[str, set[str]]) -> str:
+    by_provider_lines: list[str] = []
+    for provider in sorted(by_provider):
+        models = sorted(by_provider[provider])
+        members = ",\n        ".join(
+            _enum_ref("FoundationModelId", model_id) for model_id in models
+        )
+        by_provider_lines.append(
+            f"    {_enum_ref('ProviderName', provider)}: frozenset({{\n"
+            f"        {members},\n"
+            f"    }}),"
+        )
+
+    reverse_lines: list[str] = []
+    for provider in sorted(by_provider):
+        for model_id in sorted(by_provider[provider]):
+            reverse_lines.append(
+                f"    {_enum_ref('FoundationModelId', model_id)}: "
+                f"{_enum_ref('ProviderName', provider)},"
+            )
+
+    return (
+        "MODELS_BY_PROVIDER: dict[ProviderName, frozenset[FoundationModelId]] = {\n"
+        + "\n".join(by_provider_lines)
+        + "\n}\n\n"
+        "PROVIDER_FOR_MODEL: dict[FoundationModelId, ProviderName] = {\n"
+        + "\n".join(reverse_lines)
+        + "\n}\n"
+    )
+
+
+def render_foundation_catalog_module(
+    enums: dict[str, type[StrEnum]],
+    by_provider: dict[str, set[str]],
+) -> str:
+    ts = datetime.now(UTC).isoformat(timespec="seconds")
+    enum_body = "\n\n\n".join(render_enum_class(cls) for cls in enums.values())
+    links = render_provider_links(by_provider) if by_provider else ""
+    return (
+        "# Auto-generated by gen_foundation_models(). Do not edit.\n"
+        f"# Generated at: {ts}\n\n"
+        "from __future__ import annotations\n\n"
+        "from enum import StrEnum\n\n\n"
+        f"{enum_body}\n\n\n"
+        f"{links}"
+    )
+
+
+def load_catalog_data() -> tuple[dict[str, type[StrEnum]], dict[str, set[str]]]:
+    summaries = get_client().list_foundation_models()["modelSummaries"]
+
+    flat, by_provider = harvest_catalog(summaries)
+    enums = aws_schema_enums()
+    enums.update(sets_to_strenums(flat))
+    return enums, by_provider
+
+
+def gen_foundation_models(
+    path: Path = Path("src/bedrockflow/providers/aws/_gen_foundation_catalog.py"),
+) -> Path:
+    enums, by_provider = load_catalog_data()
+    source = render_foundation_catalog_module(enums, by_provider)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source, encoding="utf-8")
+    return path
+
+
+if __name__ == "__main__":
+    out = gen_foundation_models()
+    print(f"Wrote {out}")

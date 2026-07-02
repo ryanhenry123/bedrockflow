@@ -1,6 +1,6 @@
+from bedrockflow.evals.context import Context
+from bedrockflow.evals.verdict import EvalVerdict, run_panel
 from conftest import MockResult
-from orchflow.evals.context import Context
-from orchflow.evals.verdict import EvalVerdict, run_panel
 
 
 def ok(_ctx, _result):

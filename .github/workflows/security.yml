@@ -48,8 +48,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y trivy
 
-      - name: orchflow trivy
-        run: uv run orchflow trivy --exit-code 0
+      - name: bedrockflow trivy
+        run: uv run bedrockflow trivy --exit-code 0
 
   bandit:
     runs-on: ubuntu-latest
@@ -63,5 +63,5 @@ jobs:
       - name: Install
         run: uv sync --all-groups --extra aws
 
-      - name: orchflow bandit
-        run: uv run orchflow bandit
+      - name: bedrockflow bandit
+        run: uv run bedrockflow bandit

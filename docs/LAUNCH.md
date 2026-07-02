@@ -12,13 +12,13 @@
 
 ```bash
 # Offline core (no AWS)
-pip install dist/orchflow-*.whl
-python -c "from orchflow import markdown_sections, __version__; print(__version__)"
-orchflow eval tests/fixtures/simple/good.md
+pip install dist/bedrockflow-*.whl
+python -c "from bedrockflow import markdown_sections, __version__; print(__version__)"
+bedrockflow eval tests/fixtures/simple/good.md
 
 # Live Bedrock
-pip install "dist/orchflow-*.whl[aws]"
-orchflow run --example simple
+pip install "dist/bedrockflow-*.whl[aws]"
+bedrockflow run --example simple
 ```
 
 ## Publish
@@ -31,5 +31,5 @@ uv publish
 ## Post-publish
 
 - [ ] Verify PyPI page renders README and license
-- [ ] `pip install orchflow` from PyPI in a fresh environment
+- [ ] `pip install bedrockflow` from PyPI in a fresh environment
 - [ ] GitHub release notes link to CHANGELOG
