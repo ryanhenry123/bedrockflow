@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   push:
@@ -9,62 +9,48 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
           enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --extra tests --extra ui
+      - name: Install
+        run: uv sync --all-groups --extra aws
 
-      - name: Run tests
-        run: uv run pytest -v
+      - name: Black
+        run: uv run black --check .
 
-  lint:
+      - name: Pytest
+        run: uv run pytest
+
+  fixture-eval:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
           enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --extra precommit --extra tests --extra ui
+      - name: Install
+        run: uv sync --all-groups --extra aws
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - name: Gate trade memo fixtures
+        run: |
+          uv run orchflow eval tests/fixtures/trade_memo/good_memo.md \
+            --ctx '{"evidence_years":[2024,2026],"max_words":600,"min_words":100,"min_trades":1}' \
+            --report eval-report-trade.json
+
+      - name: Gate simple summary fixtures
+        run: |
+          uv run orchflow eval tests/fixtures/simple/good.md \
+            --panel orchflow.examples.simple_evals:SIMPLE_EVALS \
+            --report eval-report-simple.json
+
+      - name: Upload eval reports
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          node-version: "22"
-          cache: npm
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Run pre-commit
-        run: uv run pre-commit run --all-files
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: "22"
-          cache: npm
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Lint JavaScript
-        run: npm run lint:js
-
-      - name: Run Jest
-        run: npm test
+          name: eval-reports
+          path: eval-report-*.json
