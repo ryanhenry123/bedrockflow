@@ -23,3 +23,34 @@ jobs:
 
       - name: Pytest
         run: uv run pytest
+
+  fixture-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --all-groups --extra aws
+
+      - name: Gate trade memo fixtures
+        run: |
+          uv run orchflow eval tests/fixtures/trade_memo/good_memo.md \
+            --ctx '{"evidence_years":[2024,2026],"max_words":600,"min_words":100,"min_trades":1}' \
+            --report eval-report-trade.json
+
+      - name: Gate simple summary fixtures
+        run: |
+          uv run orchflow eval tests/fixtures/simple/good.md \
+            --panel orchflow.examples.simple_evals:SIMPLE_EVALS \
+            --report eval-report-simple.json
+
+      - name: Upload eval reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-reports
+          path: eval-report-*.json

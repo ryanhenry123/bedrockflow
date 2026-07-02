@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from orchflow import converse_with_evals
 from orchflow.evals.context import Context
-from orchflow.evals.record import record_output
 from orchflow.evals.runwithevals import MaxTurnsExceeded
 from orchflow.examples.models import MODEL
+from orchflow.examples.runner import finish_run, handle_run_failure
 from orchflow.examples.simple_evals import SIMPLE_EVALS
+from orchflow.providers.aws.converse_with_evals import converse_with_evals
 
 SYSTEM = (
     "Write concise markdown for busy readers. "
@@ -23,7 +23,7 @@ def draft_prompt(ctx: Context) -> str:
     )
 
 
-def run_simple_summary(ctx: Context):
+def run_simple_summary(ctx: Context, *, cache_initial: bool = False):
     return converse_with_evals(
         ctx.get("model_id", MODEL),
         initial=lambda c: draft_prompt(c),
@@ -34,30 +34,41 @@ def run_simple_summary(ctx: Context):
         temperature=0.2,
         max_turns=3,
         name="simple_summary",
+        cache_initial=cache_initial,
     )
 
 
-def main(*, record: Path | None = None) -> None:
+def main(
+    *,
+    record: Path | None = None,
+    trace: Path | None = None,
+    cache_initial: bool = False,
+) -> None:
     ctx = Context(
         topic="Why systematic vol selling builds tail risk in calm markets",
         max_words=200,
         min_words=30,
     )
+    model_id = ctx.get("model_id", MODEL)
     try:
-        out = run_simple_summary(ctx)
+        out = run_simple_summary(ctx, cache_initial=cache_initial)
     except MaxTurnsExceeded as exc:
-        if record and exc.result.text:
-            record_output(record, exc.result.text)
+        handle_run_failure(
+            exc,
+            model_id=model_id,
+            name="simple_summary",
+            record=record,
+            trace=trace,
+        )
         raise SystemExit(1) from None
-    print(out.result.text)
-    tokens = getattr(getattr(out.result, "usage", None), "output_tokens", "?")
-    print(f"\n--- {out.turns} turn(s), {tokens} output tokens ---")
-    if out.trace:
-        for step in out.trace:
-            if step.reasons:
-                print(
-                    f"  turn {step.turn}: {step.verdict.value} — {'; '.join(step.reasons)}"
-                )
-    if record:
-        path = record_output(record, out.result.text)
-        print(f"recorded → {path}")
+    finish_run(
+        out,
+        model_id=model_id,
+        name="simple_summary",
+        record=record,
+        trace=trace,
+    )
+
+
+if __name__ == "__main__":
+    main()

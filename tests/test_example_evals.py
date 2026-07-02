@@ -14,7 +14,7 @@ TRADE_CTX = Context(
 
 
 def test_trade_memo_eval_panel_passes_fixture():
-    text = (FIXTURES / "good_memo.md").read_text(encoding="utf-8")
+    text = (FIXTURES / "trade_memo" / "good_memo.md").read_text(encoding="utf-8")
     verdict, reasons = run_panel(DRAFT_EVALS, TRADE_CTX, _mock(text))
     assert verdict is EvalVerdict.OK
     assert reasons == []
@@ -39,7 +39,7 @@ def test_verdict_accepts_inflected_desk_actions():
     assert eval_verdict_actionable(ctx, _mock(verdict)) is EvalVerdict.OK
 
 
-def _mock(text: str, stop: str = "end_turn"):
+def _mock(text: str, stop_reason: str = "end_turn"):
     from conftest import MockResult
 
-    return MockResult(text, stop)
+    return MockResult(text, stop_reason)

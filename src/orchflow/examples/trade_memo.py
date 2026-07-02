@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from orchflow import converse_with_evals
 from orchflow.evals.context import Context
-from orchflow.evals.record import record_output
 from orchflow.evals.runwithevals import MaxTurnsExceeded
+from orchflow.examples.runner import finish_run, handle_run_failure
 from orchflow.examples.evals import DRAFT_EVALS
 from orchflow.examples.prompts import SYSTEM, draft_prompt
 from orchflow.examples.models import MODEL
+from orchflow.providers.aws.converse_with_evals import converse_with_evals
 
 
-def draft_trade_memo(ctx: Context):
+def draft_trade_memo(ctx: Context, *, cache_initial: bool = False):
     brief = ctx["brief"]
     return converse_with_evals(
         ctx.get("model_id", MODEL),
@@ -21,6 +21,7 @@ def draft_trade_memo(ctx: Context):
         temperature=0.2,
         max_turns=5,
         name="trade_memo",
+        cache_initial=cache_initial,
     )
 
 
@@ -35,7 +36,12 @@ def load_brief(ctx: Context) -> dict:
     }
 
 
-def main(*, record: Path | None = None) -> None:
+def main(
+    *,
+    record: Path | None = None,
+    trace: Path | None = None,
+    cache_initial: bool = False,
+) -> None:
     ctx = Context(
         topic="Systematic vol selling crowding and tail risk (2024-2026)",
         evidence_years=(2024, 2026),
@@ -44,25 +50,25 @@ def main(*, record: Path | None = None) -> None:
         min_trades=1,
     )
     ctx["brief"] = load_brief(ctx)
+    model_id = ctx.get("model_id", MODEL)
     try:
-        out = draft_trade_memo(ctx)
+        out = draft_trade_memo(ctx, cache_initial=cache_initial)
     except MaxTurnsExceeded as exc:
-        if record and exc.result.text:
-            record_output(record, exc.result.text)
+        handle_run_failure(
+            exc,
+            model_id=model_id,
+            name="trade_memo",
+            record=record,
+            trace=trace,
+        )
         raise SystemExit(1) from None
-    print(out.result.text)
-    print(
-        f"\n--- {out.turns} turn(s), {out.result.usage.output_tokens} output tokens ---"
+    finish_run(
+        out,
+        model_id=model_id,
+        name="trade_memo",
+        record=record,
+        trace=trace,
     )
-    if out.trace:
-        for step in out.trace:
-            if step.reasons:
-                print(
-                    f"  turn {step.turn}: {step.verdict.value} — {'; '.join(step.reasons)}"
-                )
-    if record:
-        path = record_output(record, out.result.text)
-        print(f"recorded → {path}")
 
 
 if __name__ == "__main__":

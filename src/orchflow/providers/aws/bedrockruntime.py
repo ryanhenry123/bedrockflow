@@ -53,11 +53,25 @@ def text_block(text: str) -> dict[str, str]:
     return {"text": text}
 
 
+def cache_point() -> dict[str, dict[str, str]]:
+    return {"cachePoint": {"type": "default"}}
+
+
 system_block = text_block
 user_message = lambda text: {
     "role": ConversationRole.USER,
     "content": [text_block(text)],
 }
+
+
+def cached_user_message(text: str) -> dict[str, Any]:
+    """User message with a Bedrock prompt-cache breakpoint after ``text``."""
+    return {
+        "role": ConversationRole.USER,
+        "content": [text_block(text), cache_point()],
+    }
+
+
 assistant_message = lambda text: {
     "role": ConversationRole.ASSISTANT,
     "content": [text_block(text)],

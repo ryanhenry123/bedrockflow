@@ -22,7 +22,7 @@ def test_load_panel():
 
 def test_good_fixture_passes():
     report = eval_fixture(
-        FIXTURES / "good_memo.md",
+        FIXTURES / "trade_memo" / "good_memo.md",
         DRAFT_EVALS,
         ctx=TRADE_CTX,
     )
@@ -32,7 +32,7 @@ def test_good_fixture_passes():
 
 def test_bad_fixture_fails_with_reasons():
     report = eval_fixture(
-        FIXTURES / "bad_memo.md",
+        FIXTURES / "trade_memo" / "bad_memo.md",
         DRAFT_EVALS,
         ctx=TRADE_CTX,
     )
@@ -41,14 +41,14 @@ def test_bad_fixture_fails_with_reasons():
 
 
 def test_eval_directory():
-    reports = eval_paths([FIXTURES], DRAFT_EVALS, ctx=TRADE_CTX)
+    reports = eval_paths([FIXTURES / "trade_memo"], DRAFT_EVALS, ctx=TRADE_CTX)
     names = {r.path.name for r in reports}
     assert "good_memo.md" in names
     assert "bad_memo.md" in names
 
 
 def test_simple_fixture_passes():
-    report = eval_fixture(FIXTURES / "simple_good.md", SIMPLE_EVALS)
+    report = eval_fixture(FIXTURES / "simple" / "good.md", SIMPLE_EVALS)
     assert report.verdict is EvalVerdict.OK
 
 

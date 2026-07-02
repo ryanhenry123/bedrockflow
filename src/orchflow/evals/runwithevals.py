@@ -16,12 +16,22 @@ from orchflow.evals.verdict import EvalFn, EvalVerdict, PanelReport, run_panel_r
 from orchflow.providers.aws.bedrockruntime import assistant_message
 
 
+def _usage_field(result: EvalResult, field: str) -> int | None:
+    usage = getattr(result, "usage", None)
+    if usage is None:
+        return None
+    return getattr(usage, field, None)
+
+
 @dataclass(frozen=True)
 class TurnTrace:
     turn: int
     verdict: EvalVerdict
     reasons: tuple[str, ...]
     output_tokens: int | None = None
+    input_tokens: int | None = None
+    cache_read_input_tokens: int | None = None
+    cache_write_input_tokens: int | None = None
     steps: tuple[Any, ...] = ()
 
 
@@ -60,6 +70,9 @@ def _trace_from_report(turn: int, report: PanelReport, result: EvalResult) -> Tu
         verdict=report.verdict,
         reasons=report.reasons,
         output_tokens=output_tokens(result),
+        input_tokens=_usage_field(result, "input_tokens"),
+        cache_read_input_tokens=_usage_field(result, "cache_read_input_tokens"),
+        cache_write_input_tokens=_usage_field(result, "cache_write_input_tokens"),
         steps=report.steps,
     )
 

@@ -1,8 +1,6 @@
 # orchflow
 
-**Quality gates and retry loops for Amazon Bedrock Converse.**
-
-Call a model, run composable evals, retry with correct message threading — without hand-rolling the loop.
+**CI for Bedrock outputs** — composable gates, correct retries, offline fixtures.
 
 MIT License. See [LICENSE](LICENSE).
 
@@ -10,114 +8,58 @@ MIT License. See [LICENSE](LICENSE).
 
 ```bash
 pip install "orchflow[aws]"
-# or
-uv sync --all-groups --extra aws
+# or: uv sync --all-groups --extra aws
 ```
 
-Requires Python 3.11+.
+Python 3.11+.
 
 ## Quick start
 
 ```python
-from orchflow import Context, EvalVerdict, converse_with_evals
-from orchflow import min_length, stop_not_truncated
+from orchflow import Context, converse_with_evals, markdown_sections
 
-ctx = Context(question="What is 2+2? Answer in one sentence.")
 out = converse_with_evals(
     "us.anthropic.claude-sonnet-4-6",
-    initial=ctx["question"],
-    evals=[
-        stop_not_truncated(),
-        min_length(10, name="long_enough"),
-    ],
-    ctx=ctx,
-    max_tokens=256,
+    initial="Summarize tail risk in vol selling.",
+    evals=markdown_sections("## Summary", "## Risks", max_words=300),
+    ctx=Context(),
+    max_tokens=512,
 )
-print(out.result.text)
-print(out.trace)  # per-turn verdicts and named eval failures
+print(out.trace)  # per-turn named eval failures + tokens
 ```
 
-Orchflow owns retry message threading — you never wire `Turn.build()` yourself.
+See [docs/COOKBOOK.md](docs/COOKBOOK.md) for JSON gates, tables, model compare, prompt caching.
 
-## Examples
+## CLI
 
 ```bash
-export AWS_REGION=us-east-1
-export ORCHFLOW_MODEL=us.anthropic.claude-sonnet-4-6
+# Live Bedrock
+orchflow run --example simple
+orchflow run --example trade_memo --record drafts/latest.md --trace runs/latest.json
+orchflow run --cache-initial   # Bedrock prompt cache on initial message
 
-uv run orchflow run --example simple      # generic markdown summary
-uv run orchflow run --example trade_memo  # PM trade memo (default)
-uv run orchflow run --record drafts/latest.md   # save output as fixture
+# Offline fixture CI (no AWS)
+orchflow eval tests/fixtures/trade_memo/ --verbose
+orchflow eval tests/fixtures/simple/ --panel orchflow.examples.simple_evals:SIMPLE_EVALS
+orchflow eval draft.md --only verdict_actionable --json
+
+# Model A/B on the same panel
+orchflow compare us.anthropic.claude-sonnet-4-6 us.amazon.nova-pro-v1:0 --example simple
 ```
 
-## Offline eval harness
-
-Tune eval panels against saved drafts — no Bedrock calls:
-
-```bash
-uv run orchflow eval tests/fixtures/good_memo.md \
-  --ctx '{"evidence_years":[2024,2026],"max_words":600,"min_words":100,"min_trades":1}'
-
-uv run orchflow eval tests/fixtures/ --verbose
-uv run orchflow eval tests/fixtures/bad_memo.md --only verdict_actionable --only structure
-uv run orchflow eval tests/fixtures/ --json
-```
-
-Exit code **0** if all pass, **1** if any retry/fail.
-
-## Eval primitives
+## Starter panels
 
 ```python
-from orchflow import (
-    gate,
-    require_sections,
-    word_count,
-    matches,
-    require_json,
-    fail_on_filter,
-    stop_not_truncated,
-)
-
-@gate("has_answer")
-def eval_has_answer(ctx, result):
-    if "4" not in result.text:
-        ctx.feedback("state the numeric answer")
-        return EvalVerdict.RETRY
-    return EvalVerdict.OK
-
-PANEL = [
-    fail_on_filter(),
-    stop_not_truncated(),
-    require_sections("## Summary"),
-    word_count(max=200),
-    require_json(required_keys=["answer"]),
-]
+from orchflow import markdown_sections, json_object, no_preamble, csv_table
 ```
 
-Retry feedback is prefixed with eval names: `verdict_actionable: Verdict must state...`
+## Trace artifacts
 
-## API
+`--trace runs/latest.json` writes turns, named eval steps, token totals (including cache read/write).
 
-| Export | Role |
-|--------|------|
-| `converse_with_evals()` | **Primary** — Bedrock Converse + eval loop + retry threading |
-| `run_with_evals()` | Lower-level loop when you own the `call` function |
-| `gate()` | Name an eval for traces and `--only` filtering |
-| `Context` | Shared state; `feedback()` queues retry reasons |
-| `EvalLoopResult.trace` | Per-turn verdicts, reasons, token counts |
-| `record_output()` | Save drafts for offline eval iteration |
+## CI
 
-CLI: `orchflow run`, `orchflow eval`.
-
-## Environment
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ORCHFLOW_MODEL` | `us.anthropic.claude-sonnet-4-6` | Inference profile model ID |
-| `ORCHFLOW_VISIBLE_TURNS` | `true` | tqdm progress and retry reasons |
-| `ORCHFLOW_PRINT_LAST_DRAFT` | `true` | Print last draft on max turns |
-
-## Tests
+Fixture eval job runs on every PR — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ```bash
 uv run pytest
@@ -127,8 +69,7 @@ uv run black --check .
 ## PyPI
 
 ```bash
-uv build
-uv publish   # when ready
+uv build && uv publish
 ```
 
-See [docs/LAUNCH.md](docs/LAUNCH.md) for a launch post draft.
+Launch draft: [docs/LAUNCH.md](docs/LAUNCH.md)
