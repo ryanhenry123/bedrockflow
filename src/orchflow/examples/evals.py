@@ -64,13 +64,16 @@ def eval_structure(_ctx, result: EvalResult) -> EvalVerdict:
     return EvalVerdict.OK
 
 
+DESK_ACTION_RE = re.compile(
+    r"\b(?:hedge|reduce|trim|cut|add|initiate|watch|avoid|hold|flat|exit|scale)"
+    r"(?:s|ed|ing)?\b",
+    re.I,
+)
+
+
 def eval_verdict_actionable(ctx, result: EvalResult) -> EvalVerdict:
     block = _section(_text(result), "## Verdict")
-    if not re.search(
-        r"\b(hedge|reduce|trim|cut|add|initiate|watch|avoid|hold|flat|exit|scale)\b",
-        block,
-        re.I,
-    ):
+    if not DESK_ACTION_RE.search(block):
         ctx.feedback(
             "## Verdict must state a clear desk action (hedge/reduce/add/watch/etc.)"
         )
@@ -81,7 +84,7 @@ def eval_verdict_actionable(ctx, result: EvalResult) -> EvalVerdict:
 def eval_sized_trades(ctx, result: EvalResult) -> EvalVerdict:
     block = _section(_text(result), "## Trades")
     if not re.search(
-        r"\bbps\b|basis points|%(\s+of)?\s*NAV|max (loss|premium)",
+        r"\d+\s*bps|\bbps\b|basis points|%(\s+of)?\s*NAV|max (loss|premium)",
         block,
         re.I,
     ):

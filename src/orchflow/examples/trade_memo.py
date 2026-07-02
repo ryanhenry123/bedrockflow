@@ -1,6 +1,6 @@
+from orchflow import converse_with_evals
 from orchflow.evals.context import Context
-from orchflow.evals.runwithevals import MaxTurnsExceeded, run_with_evals
-from orchflow.providers.aws.bedrockruntime import converse
+from orchflow.evals.runwithevals import MaxTurnsExceeded
 from orchflow.examples.evals import DRAFT_EVALS
 from orchflow.examples.prompts import SYSTEM, draft_prompt
 from orchflow.examples.models import MODEL
@@ -8,16 +8,14 @@ from orchflow.examples.models import MODEL
 
 def draft_trade_memo(ctx: Context):
     brief = ctx["brief"]
-    return run_with_evals(
-        call=lambda turn: converse(
-            ctx.get("model_id", MODEL),
-            turn.build(initial=draft_prompt({**ctx, **brief})),
-            system=SYSTEM,
-            max_tokens=1500,
-            temperature=0.2,
-        ),
+    return converse_with_evals(
+        ctx.get("model_id", MODEL),
+        initial=lambda c: draft_prompt({**c, **brief}),
         evals=DRAFT_EVALS,
         ctx=ctx,
+        system=SYSTEM,
+        max_tokens=1500,
+        temperature=0.2,
         max_turns=5,
         name="trade_memo",
     )

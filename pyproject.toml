@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-orchflow = "orchflow:main"
+orchflow = "orchflow.cli:main"
 
 [project.optional-dependencies]
 aws = [

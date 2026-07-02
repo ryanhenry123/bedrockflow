@@ -13,8 +13,7 @@ Requires Python 3.13+. AWS credentials and Bedrock model access for the live exa
 ## Quick start
 
 ```python
-from orchflow import Context, EvalVerdict, run_with_evals
-from orchflow.providers.aws.bedrockruntime import converse
+from orchflow import Context, EvalVerdict, converse_with_evals
 
 def eval_has_answer(_ctx, result) -> EvalVerdict:
     if len(result.text.strip()) < 20:
@@ -23,39 +22,50 @@ def eval_has_answer(_ctx, result) -> EvalVerdict:
     return EvalVerdict.OK
 
 ctx = Context(question="What is 2+2?")
-out = run_with_evals(
-    call=lambda turn: converse(
-        "us.anthropic.claude-sonnet-4-6",
-        turn.build(initial=ctx["question"]),
-        max_tokens=256,
-    ),
+out = converse_with_evals(
+    "us.anthropic.claude-sonnet-4-6",
+    initial=ctx["question"],
     evals=[eval_has_answer],
     ctx=ctx,
+    max_tokens=256,
 )
 print(out.result.text)
 ```
 
-## Trade memo example
+Orchflow owns message threading on retries — you never wire `Turn.build()` yourself.
 
-Runs a PM trade memo through a domain eval panel (structure, sizing, triggers, brevity):
+## Trade memo example
 
 ```bash
 export AWS_REGION=us-east-1
 export ORCHFLOW_MODEL=us.anthropic.claude-sonnet-4-6
-./src/orchflow/examples/run.sh
+uv run orchflow run
+# or: ./src/orchflow/examples/run.sh
 ```
 
-Or: `uv run orchflow`
+## Offline eval harness
+
+Tune eval panels against saved drafts without calling Bedrock:
+
+```bash
+uv run orchflow eval tests/fixtures/good_memo.md
+uv run orchflow eval tests/fixtures/ --ctx '{"max_words":600,"min_words":100,"min_trades":1,"evidence_years":[2024,2026]}'
+uv run orchflow eval my_draft.md --panel orchflow.examples.evals:DRAFT_EVALS
+```
+
+Exit code is 0 when all fixtures pass, 1 when any eval returns retry or fail.
 
 ## API
 
 | Export | Role |
 |--------|------|
-| `run_with_evals()` | Main loop: call → eval panel → retry |
-| `Turn.build()` | Builds Bedrock messages; retries send initial prompt + latest draft + feedback |
+| `converse_with_evals()` | **Primary path** — Bedrock Converse + eval loop + retry threading |
+| `run_with_evals()` | Lower-level loop when you own the `call` function |
 | `Context` | Shared state; `feedback()` queues retry reasons |
 | `EvalVerdict` | `OK`, `RETRY`, or `FAIL` |
 | `converse()` | Thin wrapper around `BedrockRuntime.Client.converse` |
+
+CLI: `orchflow run` (live example), `orchflow eval <paths>` (offline fixtures).
 
 ## Environment
 
@@ -69,4 +79,5 @@ Or: `uv run orchflow`
 
 ```bash
 uv run pytest
+uv run orchflow eval tests/fixtures/
 ```
